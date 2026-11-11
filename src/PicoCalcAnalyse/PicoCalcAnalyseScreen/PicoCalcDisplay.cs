@@ -197,6 +197,16 @@ namespace PicoCalc
         /// <summary>Fill a rectangle with one color.</summary>
         public void FillRect(int x, int y, int w, int h, byte r, byte g, byte b)
         {
+            // Clip to the screen
+            if (x < 0) { w += x; x = 0; }
+            if (y < 0) { h += y; y = 0; }
+            if (x + w > Width) { w = Width - x; }
+            if (y + h > Height) { h = Height - y; }
+            if (w <= 0 || h <= 0)
+            {
+                return;
+            }
+
             SetWindow(x, y, x + w - 1, y + h - 1);
 
             int blockRows = h < 8 ? h : 8;
@@ -204,8 +214,8 @@ namespace PicoCalc
 
             WriteCommand(CmdMemoryWrite);
 
-            _dc.Write(PinValue.High);
-            _cs.Write(PinValue.Low);
+            SetDc(true);
+            Select();
 
             int remaining = h;
             while (remaining >= blockRows)
@@ -219,7 +229,7 @@ namespace PicoCalc
                 SendBytes(MakeBlock(w * remaining, r, g, b));
             }
 
-            _cs.Write(PinValue.High);
+            Deselect();
         }
 
         /// <summary>
@@ -229,34 +239,246 @@ namespace PicoCalc
         /// </summary>
         public void DrawGlyph(int x, int y, byte[] font, int offset, int fgRgb, int bgRgb)
         {
-            // Two ready-made pixels (foreground and background) in the current format
-            byte[] fgPx = MakeBlock(1, (byte)((fgRgb >> 16) & 0xFF), (byte)((fgRgb >> 8) & 0xFF), (byte)(fgRgb & 0xFF));
-            byte[] bgPx = MakeBlock(1, (byte)((bgRgb >> 16) & 0xFF), (byte)((bgRgb >> 8) & 0xFF), (byte)(bgRgb & 0xFF));
-            int bpp = BytesPerPixel;
+            PrepareExpand(fgRgb, bgRgb);
+            int rowBytes = GlyphWidth * BytesPerPixel;
 
-            int p = 0;
             for (int row = 0; row < GlyphHeight; row++)
             {
-                int bits = font[offset + row];
-                for (int col = 0; col < GlyphWidth; col++)
-                {
-                    byte[] px = (bits & (0x80 >> col)) != 0 ? fgPx : bgPx;
-                    for (int k = 0; k < bpp; k++)
-                    {
-                        _glyphBuffer[p + k] = px[k];
-                    }
-
-                    p += bpp;
-                }
+                Array.Copy(_expandTable, font[offset + row] * rowBytes, _glyphBuffer, row * rowBytes, rowBytes);
             }
 
             SetWindow(x, y, x + GlyphWidth - 1, y + GlyphHeight - 1);
             WriteCommand(CmdMemoryWrite);
 
-            _dc.Write(PinValue.High);
-            _cs.Write(PinValue.Low);
+            SetDc(true);
+            Select();
             SendBytes(_glyphBuffer);
-            _cs.Write(PinValue.High);
+            Deselect();
+        }
+
+        /// <summary>
+        /// Draw 'count' characters of 'chars' (starting at 'start') side by side on one text line,
+        /// at pixel position (x, y), with ONE window and ONE data transfer. Much faster than
+        /// calling DrawGlyph for each character, because every SPI call has a fixed cost.
+        /// </summary>
+        public void DrawGlyphs(int x, int y, char[] chars, int start, int count, int fgRgb, int bgRgb)
+        {
+            if (count <= 0)
+            {
+                return;
+            }
+
+            if (count == 1)
+            {
+                DrawGlyph(x, y, PicoCalcFont.Data, PicoCalcFont.GlyphOffset(chars[start]), fgRgb, bgRgb);
+                return;
+            }
+
+            PrepareExpand(fgRgb, bgRgb);
+            int rowBytes = GlyphWidth * BytesPerPixel;
+            int lineBytes = count * rowBytes;
+            int total = lineBytes * GlyphHeight;
+
+            if (_runBuffer == null || _runBuffer.Length < total)
+            {
+                _runBuffer = new byte[total];
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                int offset = PicoCalcFont.GlyphOffset(chars[start + i]);
+                for (int row = 0; row < GlyphHeight; row++)
+                {
+                    Array.Copy(_expandTable, PicoCalcFont.Data[offset + row] * rowBytes, _runBuffer, row * lineBytes + i * rowBytes, rowBytes);
+                }
+            }
+
+            SetWindow(x, y, x + count * GlyphWidth - 1, y + GlyphHeight - 1);
+            WriteCommand(CmdMemoryWrite);
+
+            SetDc(true);
+            Select();
+            SendBytes(_runBuffer, total);
+            Deselect();
+        }
+
+        // For each of the 256 possible font rows, the 8 pixels already converted to the display
+        // format with the current colors: building a glyph row is then one Array.Copy.
+        private byte[] _expandTable;
+        private byte[] _runBuffer;
+        private int _expandFg = -1;
+        private int _expandBg = -1;
+        private bool _expandIs16;
+
+        private void PrepareExpand(int fgRgb, int bgRgb)
+        {
+            if (_expandTable != null && _expandFg == fgRgb && _expandBg == bgRgb && _expandIs16 == Use16Bit)
+            {
+                return;
+            }
+
+            int bpp = BytesPerPixel;
+            int rowBytes = GlyphWidth * bpp;
+            if (_expandTable == null || _expandTable.Length != 256 * rowBytes)
+            {
+                _expandTable = new byte[256 * rowBytes];
+            }
+
+            byte[] fgPx = MakeBlock(1, (byte)((fgRgb >> 16) & 0xFF), (byte)((fgRgb >> 8) & 0xFF), (byte)(fgRgb & 0xFF));
+            byte[] bgPx = MakeBlock(1, (byte)((bgRgb >> 16) & 0xFF), (byte)((bgRgb >> 8) & 0xFF), (byte)(bgRgb & 0xFF));
+
+            for (int pattern = 0; pattern < 256; pattern++)
+            {
+                int p = pattern * rowBytes;
+                for (int col = 0; col < GlyphWidth; col++)
+                {
+                    byte[] px = (pattern & (0x80 >> col)) != 0 ? fgPx : bgPx;
+                    for (int k = 0; k < bpp; k++)
+                    {
+                        _expandTable[p++] = px[k];
+                    }
+                }
+            }
+
+            _expandFg = fgRgb;
+            _expandBg = bgRgb;
+            _expandIs16 = Use16Bit;
+        }
+
+        // ---------------------------------------------------------------------------------
+        // Drawing directly on the screen. Only shapes the controller can fill in ONE window
+        // are offered here (each call costs a few milliseconds). For lines, circles, triangles...
+        // draw into a PicoCalcCanvas (in memory) and send it with canvas.DrawTo(display, x, y).
+        // ---------------------------------------------------------------------------------
+
+        /// <summary>Horizontal line (clipped).</summary>
+        public void HLine(int x, int y, int length, int rgb)
+        {
+            FillRect(x, y, length, 1, rgb);
+        }
+
+        /// <summary>Vertical line (clipped).</summary>
+        public void VLine(int x, int y, int length, int rgb)
+        {
+            FillRect(x, y, 1, length, rgb);
+        }
+
+        /// <summary>Rectangle outline, 1 pixel wide (clipped).</summary>
+        public void DrawRect(int x, int y, int w, int h, int rgb)
+        {
+            if (w <= 0 || h <= 0)
+            {
+                return;
+            }
+
+            HLine(x, y, w, rgb);
+            if (h > 1)
+            {
+                HLine(x, y + h - 1, w, rgb);
+            }
+
+            if (h > 2)
+            {
+                VLine(x, y + 1, h - 2, rgb);
+                if (w > 1)
+                {
+                    VLine(x + w - 1, y + 1, h - 2, rgb);
+                }
+            }
+        }
+
+        /// <summary>One pixel. Slow (a whole window per pixel): prefer a PicoCalcCanvas.</summary>
+        public void DrawPixel(int x, int y, int rgb)
+        {
+            FillRect(x, y, 1, 1, rgb);
+        }
+
+        /// <summary>Width in pixels of a text drawn with DrawText.</summary>
+        public static int MeasureText(string text, int scale)
+        {
+            return text.Length * GlyphWidth * scale;
+        }
+
+        /// <summary>
+        /// Draw text at pixel position (x, y) with a background color. scale = 1, 2, 3...
+        /// (each font pixel becomes scale x scale pixels). A character that does not fit
+        /// entirely on the screen is skipped.
+        /// </summary>
+        public void DrawText(int x, int y, string text, int fgRgb, int bgRgb, int scale)
+        {
+            if (scale < 1)
+            {
+                scale = 1;
+            }
+
+            int cellW = GlyphWidth * scale;
+            int cellH = GlyphHeight * scale;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                int cx = x + i * cellW;
+                if (cx < 0 || y < 0 || cx + cellW > Width || y + cellH > Height)
+                {
+                    continue;
+                }
+
+                DrawGlyphScaled(cx, y, PicoCalcFont.Data, PicoCalcFont.GlyphOffset(text[i]), fgRgb, bgRgb, scale);
+            }
+        }
+
+        private byte[] _scaledBuffer;
+        private byte[] _scaledRow;
+
+        private void DrawGlyphScaled(int x, int y, byte[] font, int offset, int fgRgb, int bgRgb, int scale)
+        {
+            if (scale == 1)
+            {
+                DrawGlyph(x, y, font, offset, fgRgb, bgRgb);
+                return;
+            }
+
+            int bpp = BytesPerPixel;
+            int w = GlyphWidth * scale;
+            int h = GlyphHeight * scale;
+            int rowBytes = w * bpp;
+
+            if (_scaledBuffer == null || _scaledBuffer.Length != rowBytes * h)
+            {
+                _scaledBuffer = new byte[rowBytes * h];
+                _scaledRow = new byte[rowBytes];
+            }
+
+            byte[] fgPx = MakeBlock(1, (byte)((fgRgb >> 16) & 0xFF), (byte)((fgRgb >> 8) & 0xFF), (byte)(fgRgb & 0xFF));
+            byte[] bgPx = MakeBlock(1, (byte)((bgRgb >> 16) & 0xFF), (byte)((bgRgb >> 8) & 0xFF), (byte)(bgRgb & 0xFF));
+
+            int dst = 0;
+            for (int row = 0; row < GlyphHeight; row++)
+            {
+                int bits = font[offset + row];
+
+                // One font row, stretched horizontally
+                int p = 0;
+                for (int col = 0; col < GlyphWidth; col++)
+                {
+                    byte[] px = (bits & (0x80 >> col)) != 0 ? fgPx : bgPx;
+                    for (int k = 0; k < scale; k++)
+                    {
+                        for (int b = 0; b < bpp; b++)
+                        {
+                            _scaledRow[p++] = px[b];
+                        }
+                    }
+                }
+
+                // ... then repeated vertically
+                for (int k = 0; k < scale; k++)
+                {
+                    Array.Copy(_scaledRow, 0, _scaledBuffer, dst, rowBytes);
+                    dst += rowBytes;
+                }
+            }
+
+            WriteRaw(x, y, w, h, _scaledBuffer);
         }
 
         /// <summary>Change the pixel format (COLMOD): 0x66 = 18 bits, 0x55 = 16 bits, 0x61 = 3 bits.</summary>
@@ -271,10 +493,10 @@ namespace PicoCalc
             SetWindow(x, y, x + w - 1, y + h - 1);
             WriteCommand(CmdMemoryWrite);
 
-            _dc.Write(PinValue.High);
-            _cs.Write(PinValue.Low);
+            SetDc(true);
+            Select();
             SendBytes(data);
-            _cs.Write(PinValue.High);
+            Deselect();
         }
 
         /// <summary>
@@ -298,6 +520,53 @@ namespace PicoCalc
         public void SetScrollStart(int line)
         {
             WriteCommand(0x37, new byte[] { (byte)(line >> 8), (byte)(line & 0xFF) });
+        }
+
+        // ---- chip select / data-command pins ---------------------------------------------
+        // Every GPIO write costs time in managed code, so avoid the useless ones: DC is only
+        // written when it changes, and CS can be held low permanently (nothing else is on this bus).
+
+        private bool _holdCs;
+        private bool _dcLevel = true;   // matches the initial write in the constructor
+
+        /// <summary>
+        /// Keep the display chip select low all the time instead of toggling it around every
+        /// transfer. Saves many slow GPIO writes (a text cell gets several times faster).
+        /// Safe as long as nothing else shares the display's SPI bus (true on the PicoCalc).
+        /// </summary>
+        public bool HoldChipSelect
+        {
+            get { return _holdCs; }
+            set
+            {
+                _holdCs = value;
+                _cs.Write(value ? PinValue.Low : PinValue.High);
+            }
+        }
+
+        private void Select()
+        {
+            if (!_holdCs)
+            {
+                _cs.Write(PinValue.Low);
+            }
+        }
+
+        private void Deselect()
+        {
+            if (!_holdCs)
+            {
+                _cs.Write(PinValue.High);
+            }
+        }
+
+        private void SetDc(bool high)
+        {
+            if (_dcLevel != high)
+            {
+                _dc.Write(high ? PinValue.High : PinValue.Low);
+                _dcLevel = high;
+            }
         }
 
         public void SetWindow(int x0, int y0, int x1, int y1)
@@ -355,9 +624,23 @@ namespace PicoCalc
 
         private void SendBytes(byte[] data)
         {
+            SendBytes(data, data.Length);
+        }
+
+        // Send the first 'count' bytes of 'data'
+        private void SendBytes(byte[] data, int count)
+        {
             if (_spi != null)
             {
-                _spi.Write(data);
+                if (count == data.Length)
+                {
+                    _spi.Write(data);
+                }
+                else
+                {
+                    _spi.Write(new SpanByte(data, 0, count));
+                }
+
                 return;
             }
 
@@ -365,7 +648,7 @@ namespace PicoCalc
             // changes, so runs of identical bits (0x00 / 0xFF bytes) cost two pin
             // writes per bit instead of three.
             bool level = _mosiLevel;
-            for (int i = 0; i < data.Length; i++)
+            for (int i = 0; i < count; i++)
             {
                 byte value = data[i];
                 for (int bit = 7; bit >= 0; bit--)
@@ -389,20 +672,20 @@ namespace PicoCalc
         {
             _oneByte[0] = command;
 
-            _dc.Write(PinValue.Low);
-            _cs.Write(PinValue.Low);
+            SetDc(false);
+            Select();
             SendBytes(_oneByte);
-            _cs.Write(PinValue.High);
+            Deselect();
         }
 
         private void WriteCommand(byte command, byte[] data)
         {
             WriteCommand(command);
 
-            _dc.Write(PinValue.High);
-            _cs.Write(PinValue.Low);
+            SetDc(true);
+            Select();
             SendBytes(data);
-            _cs.Write(PinValue.High);
+            Deselect();
         }
     }
 }

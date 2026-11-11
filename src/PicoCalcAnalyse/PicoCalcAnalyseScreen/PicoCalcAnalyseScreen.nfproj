@@ -18,6 +18,7 @@
   </PropertyGroup>
   <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.props" Condition="Exists('$(NanoFrameworkProjectSystemPath)NFProjectSystem.props')" />
   <ItemGroup>
+    <Compile Include="PicoCalcCanvas.cs" />
     <Compile Include="PicoCalcConsole.cs" />
     <Compile Include="PicoCalcDisplay.cs" />
     <Compile Include="PicoCalcFont.cs" />

@@ -27,6 +27,8 @@ namespace PicoCalc
         private int _top;                // physical row that holds logical row 0
         private int _shownTop;           // scroll start currently programmed in the controller
         private int _shownCursor = -1;   // PHYSICAL cell index where the cursor is drawn, -1 = none
+        private readonly bool[] _need = new bool[Columns];
+        private readonly char[] _runChars = new char[Columns];
         private bool _dirty = true;      // something changed since the last Flush()
 
         public int ForegroundColor = PicoCalcColors.White;
@@ -258,7 +260,8 @@ namespace PicoCalc
                 _shownTop = _top;
             }
 
-            // Pass 3: draw the cells that differ
+            // Pass 3: draw what differs. Neighbouring cells of a line are sent together (one window,
+            // one transfer: every SPI call has a fixed cost); the cursor cell is drawn on its own.
             for (int row = 0; row < Rows; row++)
             {
                 int prow = (row + _top) % Rows;
@@ -267,16 +270,53 @@ namespace PicoCalc
 
                 for (int col = 0; col < Columns; col++)
                 {
-                    int li = lb + col;
-                    int pi = pb + col;
-                    bool isCursor = li == cursorLogical;
-                    bool wasCursor = pi == _shownCursor;
+                    _need[col] = _cells[lb + col] != _shown[pb + col] || ((lb + col) == cursorLogical) != ((pb + col) == _shownCursor);
+                }
 
-                    if (_cells[li] != _shown[pi] || isCursor != wasCursor)
+                int c = 0;
+                while (c < Columns)
+                {
+                    if (!_need[c])
                     {
-                        DrawCell(prow, col, _cells[li], isCursor);
-                        _shown[pi] = _cells[li];
+                        c++;
+                        continue;
                     }
+
+                    if (lb + c == cursorLogical)
+                    {
+                        DrawCell(prow, c, _cells[lb + c], true);
+                        _shown[pb + c] = _cells[lb + c];
+                        c++;
+                        continue;
+                    }
+
+                    // Run from c to 'end': extend over small gaps of unchanged cells (cheaper than a new transfer)
+                    int end = c;
+                    int scan = c + 1;
+                    while (scan < Columns && scan - end <= 4)
+                    {
+                        if (lb + scan == cursorLogical)
+                        {
+                            break;
+                        }
+
+                        if (_need[scan])
+                        {
+                            end = scan;
+                        }
+
+                        scan++;
+                    }
+
+                    int count = end - c + 1;
+                    for (int i = 0; i < count; i++)
+                    {
+                        _runChars[i] = _cells[lb + c + i];
+                        _shown[pb + c + i] = _cells[lb + c + i];
+                    }
+
+                    _display.DrawGlyphs(c * PicoCalcFont.GlyphWidth, prow * PicoCalcFont.GlyphHeight, _runChars, 0, count, ForegroundColor, BackgroundColor);
+                    c = end + 1;
                 }
             }
 

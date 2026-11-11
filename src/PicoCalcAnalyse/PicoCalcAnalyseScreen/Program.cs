@@ -2,8 +2,6 @@
 // Commandes : help, clear, echo <texte>, calc <a> <op> <b>, lines <n>, bye
 
 using System;
-using System.Device.Spi;
-using System.Diagnostics;
 using System.Threading;
 
 namespace PicoCalc
