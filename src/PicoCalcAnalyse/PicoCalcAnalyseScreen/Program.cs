@@ -13,14 +13,13 @@ namespace PicoCalc
     {
         public static void Main()
         {
-            // Pause courte pour laisser le debogueur / le deploiement reprendre la main
-            Thread.Sleep(3000);
-
             PicoCalcConsole console = new PicoCalcConsole();
             console.Start();
 
             console.WriteLine("PicoCalc console");
-            console.WriteLine("Tape help pour l'aide.");
+            console.WriteLine("(c) Stéphane Sibué 2026");
+            console.WriteLine();
+            console.WriteLine("type help for help");
             console.WriteLine();
 
             while (true)
@@ -42,9 +41,9 @@ namespace PicoCalc
                     console.WriteLine("help  clear  bye");
                     console.WriteLine("echo <texte>");
                     console.WriteLine("calc <a> <op> <b>   (+ - * /)");
-                    console.WriteLine("lines <n>   (test defilement)");
-                    console.WriteLine("graph   (test du dessin)");
-                    console.WriteLine("Fleches haut/bas = historique");
+                    console.WriteLine("lines <n>   (scrolling test)");
+                    console.WriteLine("graph (drawing test)");
+                    console.WriteLine("Up/Down arrows = history");
                 }
                 else if (line == "clear")
                 {
@@ -70,12 +69,12 @@ namespace PicoCalc
                         int n = int.Parse(line.Substring(6));
                         for (int i = 1; i <= n; i++)
                         {
-                            console.WriteLine("Ligne " + i);
+                            console.WriteLine("Line " + i);
                         }
                     }
                     catch (Exception)
                     {
-                        console.WriteLine("Nombre invalide");
+                        console.WriteLine("Invalid number");
                     }
                 }
                 else if (line.StartsWith("calc "))
@@ -84,13 +83,13 @@ namespace PicoCalc
                 }
                 else
                 {
-                    console.WriteLine("Commande inconnue : " + line);
+                    console.WriteLine("Unknown command : " + line);
                 }
             }
         }
 
-        // Ecran de test du dessin : formes directes + canevas en memoire.
-        // Reste affiche jusqu'a ce qu'on tape sur une touche, puis la console revient telle qu'elle etait.
+        // Drawing test screen: direct shapes + off-screen canvas.
+        // Remains displayed until a key is pressed, then the console returns to its previous state.
         private static void Graph(PicoCalcConsole console)
         {
             PicoCalcDisplay display = console.Display;
@@ -98,21 +97,21 @@ namespace PicoCalc
             console.BeginGraphics();
             display.FillScreen(PicoCalcColors.Black);
 
-            // --- 1. Formes directes sur l'ecran ---
-            display.DrawRect(0, 0, 320, 320, PicoCalcColors.White);           // cadre de l'ecran
+            // --- 1. Direct shapes on the screen ---
+            display.DrawRect(0, 0, 320, 320, PicoCalcColors.White);           // screen frame
             display.FillRect(10, 10, 60, 30, PicoCalcColors.Red);
             display.FillRect(80, 10, 60, 30, PicoCalcColors.Green);
             display.FillRect(150, 10, 60, 30, PicoCalcColors.Blue);
             display.HLine(10, 50, 200, PicoCalcColors.Yellow);
             display.VLine(220, 10, 40, PicoCalcColors.Cyan);
 
-            display.DrawText(10, 60, "Texte x1", PicoCalcColors.White, PicoCalcColors.Black, 1);
-            display.DrawText(10, 80, "Texte x2", PicoCalcColors.Yellow, PicoCalcColors.Black, 2);
+            display.DrawText(10, 60, "Text x1", PicoCalcColors.White, PicoCalcColors.Black, 1);
+            display.DrawText(10, 80, "Text x2", PicoCalcColors.Yellow, PicoCalcColors.Black, 2);
             display.DrawText(10, 115, "x3", PicoCalcColors.Cyan, PicoCalcColors.Black, 3);
 
-            // --- 2. Canevas en memoire : 140 x 140 ---
+            // --- 2. Off-screen canvas : 140 x 140 ---
             PicoCalcCanvas canvas = new PicoCalcCanvas(140, 140);
-            canvas.Clear(0x000040);                                            // bleu nuit
+            canvas.Clear(0x000040);                                            // night blue
             canvas.DrawRect(0, 0, 140, 140, PicoCalcColors.White);
             canvas.DrawLine(0, 0, 139, 139, PicoCalcColors.Red);
             canvas.DrawLine(139, 0, 0, 139, PicoCalcColors.Green);
@@ -122,7 +121,7 @@ namespace PicoCalc
             canvas.DrawTriangle(90, 20, 130, 20, 110, 50, PicoCalcColors.White);
             canvas.DrawText(8, 6, "Canvas", PicoCalcColors.White, 1);
 
-            // Un petit sprite avec fond transparent (magenta pur = transparent)
+            // A small sprite with transparent background (pure magenta = transparent)
             PicoCalcCanvas sprite = new PicoCalcCanvas(32, 32);
             sprite.Clear(PicoCalcColors.Magenta);
             sprite.FillCircle(16, 16, 14, PicoCalcColors.Yellow);
@@ -134,9 +133,9 @@ namespace PicoCalc
 
             canvas.DrawTo(display, 90, 160);
 
-            display.DrawText(10, 302, "Une touche pour revenir", PicoCalcColors.White, PicoCalcColors.Black, 1);
+            display.DrawText(10, 302, "Press any key to return", PicoCalcColors.White, PicoCalcColors.Black, 1);
 
-            // On attend une touche (on oublie d'abord celles deja tapees, comme le Entree de la commande)
+            // Wait for a key (first clear any already pressed keys, like the Enter from the command)
             console.ClearKeys();
             console.ReadKey();
 
@@ -165,7 +164,7 @@ namespace PicoCalc
                 else if (op == "/") r = a / b;
                 else
                 {
-                    console.WriteLine("Operateur inconnu : " + op);
+                    console.WriteLine("Unknown operator : " + op);
                     return;
                 }
 
@@ -173,7 +172,7 @@ namespace PicoCalc
             }
             catch (Exception)
             {
-                console.WriteLine("Nombre invalide");
+                console.WriteLine("Invalid number");
             }
         }
     }
