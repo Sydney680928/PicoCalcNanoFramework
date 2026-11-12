@@ -501,7 +501,7 @@ namespace PicoCalc
 
         /// <summary>
         /// Define the hardware vertical scroll areas (DCS VSCRDEF, 0x33):
-        /// topFixed + scrollArea + bottomFixed must equal 320 (Height).
+        /// topFixed + scrollArea + bottomFixed must equal 480 (the controller memory height).
         /// </summary>
         public void SetVerticalScrollArea(int topFixed, int scrollArea, int bottomFixed)
         {

@@ -43,6 +43,7 @@ namespace PicoCalc
         private Thread _refreshThread;
         private bool _running;
         private bool _blinkReset;
+        private bool _graphics;   // true while the program draws directly on the display
 
         // Where the line being edited starts (screen coordinates, kept up to date when the screen scrolls)
         private int _inputX;
@@ -54,6 +55,9 @@ namespace PicoCalc
         /// <summary>Raised (on the keyboard thread) when Break (Shift+Esc) or Ctrl+C is pressed,
         /// whether or not ReadLine is waiting. Typical use: stop a running script.</summary>
         public event PicoCalcBreakHandler BreakPressed;
+
+        /// <summary>The display, for direct drawing between BeginGraphics() and EndGraphics().</summary>
+        public PicoCalcDisplay Display { get { return _display; } }
 
         public int Columns { get { return PicoCalcTextScreen.Columns; } }
         public int Rows { get { return PicoCalcTextScreen.Rows; } }
@@ -159,6 +163,36 @@ namespace PicoCalc
                     _screen.CursorVisible = value;
                     _screen.Invalidate();
                 }
+            }
+        }
+
+        /// <summary>Enter graphics mode: the text refresh is paused so that you can draw on Display
+        /// (screen coordinates 0..319). Call EndGraphics() to get the text screen back as it was.</summary>
+        public void BeginGraphics()
+        {
+            lock (_lock)
+            {
+                _graphics = true;
+                _screen.PrepareDirectDrawing();
+            }
+        }
+
+        /// <summary>Leave graphics mode: the panel is wiped and the text screen is redrawn.</summary>
+        public void EndGraphics()
+        {
+            lock (_lock)
+            {
+                _screen.RestoreAfterDirectDrawing();
+                _graphics = false;
+            }
+        }
+
+        /// <summary>Forget the key presses that are waiting for ReadKey().</summary>
+        public void ClearKeys()
+        {
+            lock (_keys)
+            {
+                _keys.Clear();
             }
         }
 
@@ -387,23 +421,26 @@ namespace PicoCalc
             {
                 lock (_lock)
                 {
-                    if (_blinkReset)
+                    if (!_graphics)
                     {
-                        _blinkReset = false;
-                        tick = 0;
-                        _screen.CursorVisible = true;
-                        _screen.Invalidate();
-                    }
+                        if (_blinkReset)
+                        {
+                            _blinkReset = false;
+                            tick = 0;
+                            _screen.CursorVisible = true;
+                            _screen.Invalidate();
+                        }
 
-                    tick++;
-                    if (tick >= 25)   // about every 500 ms
-                    {
-                        tick = 0;
-                        _screen.CursorVisible = !_screen.CursorVisible;
-                        _screen.Invalidate();
-                    }
+                        tick++;
+                        if (tick >= 25)   // about every 500 ms
+                        {
+                            tick = 0;
+                            _screen.CursorVisible = !_screen.CursorVisible;
+                            _screen.Invalidate();
+                        }
 
-                    _screen.Flush();
+                        _screen.Flush();
+                    }
                 }
 
                 Thread.Sleep(20);

@@ -1,6 +1,6 @@
 // PicoCalcSound - sound for the PicoCalc (.NET nanoFramework): beeps, notes, melodies.
 //
-// The PicoCalc has two PWM audio outputs: GP26 (left speaker, verified) and GP27 (right, see below).
+// The PicoCalc has two PWM audio outputs: GP26 (left speaker, verified) and GP27 (right).
 // A square wave is produced with PwmChannel; the "volume" is the duty cycle.
 //
 // Facts learned on real hardware:
@@ -46,9 +46,9 @@ namespace PicoCalc
         /// <summary>Loudness from 0.0 (silent) to 1.0 (maximum). Default 0.6.</summary>
         public double Volume = 0.6;
 
-        /// <summary>Speaker(s) used by Beep, Tone and Play. Default: left only. Left alone and right alone
-        /// are reliable; Both (the two channels at once) is still being investigated: GP26 and GP27 are
-        /// the two outputs of the same PWM block on the RP2040.</summary>
+        /// <summary>Speaker(s) used by Beep, Tone and Play. Default: left only. Left, Right and Both all
+        /// work (GP26 and GP27 are the two outputs of the same PWM slice). Known issue: the pitch does
+        /// not follow the requested frequency, see docs/sound.md.</summary>
         public PicoCalcSpeaker Speaker = PicoCalcSpeaker.Left;
 
         /// <summary>Pause in milliseconds added after each note, so repeated notes stay distinct.</summary>

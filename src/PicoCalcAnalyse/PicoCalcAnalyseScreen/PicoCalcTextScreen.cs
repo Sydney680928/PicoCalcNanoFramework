@@ -65,6 +65,22 @@ namespace PicoCalc
             _dirty = true;
         }
 
+        /// <summary>Call before drawing directly on the display (graphics): puts the scroll start
+        /// back to 0 so that display coordinates match what is visible on the panel.</summary>
+        public void PrepareDirectDrawing()
+        {
+            _display.SetScrollStart(0);
+            _shownTop = 0;
+        }
+
+        /// <summary>Call after direct drawing: wipes the panel and redraws all the text on next Flush().</summary>
+        public void RestoreAfterDirectDrawing()
+        {
+            _display.SetScrollStart(0);
+            _shownTop = 0;
+            ClearPanel();
+        }
+
         /// <summary>Force the next Flush() to look at the grid again (e.g. after toggling CursorVisible).</summary>
         public void Invalidate()
         {
