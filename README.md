@@ -1,3 +1,5 @@
+<img src="./images/img01.png" title="" alt="MOGWAI" data-align="center">
+
 # PicoCalc drivers for .NET nanoFramework
 
 C# drivers for the Clockwork **PicoCalc** (Raspberry Pi Pico or Pico 2 W in the socket) with
