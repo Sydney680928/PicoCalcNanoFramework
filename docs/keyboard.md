@@ -5,7 +5,7 @@ I2C; this driver polls that FIFO on a background thread and raises `KeyDown` / `
 code, the character, and the modifier state.
 
 - Source file: `PicoCalcKeyboard.cs` (also contains `PicoCalcKeys`, `PicoCalcKeyEventArgs`, the event delegate)
-- NuGet packages: `nanoFramework.System.Device.I2c`, `nanoFramework.System.Threading`
+- NuGet packages: `nanoFramework.System.Device.I2c`
 - Needs nothing else: this driver is independent of the display, the console and the other drivers
 
 ## Hardware

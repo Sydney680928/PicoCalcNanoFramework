@@ -7,7 +7,7 @@ separate piece so that other projects can use it as well.
 - Source file: `PicoCalcConsole.cs`
 - Depends on the [display](display.md) (`PicoCalcDisplay`, `PicoCalcTextScreen`, `PicoCalcFont`) and the
   [keyboard](keyboard.md) (`PicoCalcKeyboard`) drivers: add their source files, or their packages
-- NuGet packages: the ones of those two drivers (Gpio, Spi, I2c, Threading)
+- NuGet packages: the ones of those two drivers (Gpio, Spi, I2c, plus Collections for the key queue)
 
 The screen is refreshed by an internal thread (every 20 ms; the cursor blinks every 500 ms): you do **not** call
 `Flush()` and you do not need any lock. `Write` and `WriteLine` can be called from any thread.

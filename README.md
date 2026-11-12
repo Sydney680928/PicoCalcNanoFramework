@@ -1,5 +1,3 @@
-<img src="./images/img01.png" title="" alt="MOGWAI" data-align="center">
-
 # PicoCalc drivers for .NET nanoFramework
 
 C# drivers for the Clockwork **PicoCalc** (Raspberry Pi Pico or Pico 2 W in the socket) with
@@ -23,9 +21,9 @@ The `tests/` folder holds the test programs used to validate each driver.
 
 | Driver | nanoFramework NuGet packages |
 |---|---|
-| Keyboard | `System.Device.I2c`, `System.Threading` |
+| Keyboard | `System.Device.I2c` |
 | Display | `System.Device.Gpio`, `System.Device.Spi` |
-| Console | those of Keyboard and Display |
+| Console | those of Keyboard and Display, plus `System.Collections` (Queue) |
 | SD card | `System.Device.Gpio`, `System.Device.Spi` |
 | Sound | `System.Device.Pwm` |
 
