@@ -25,7 +25,6 @@
   <file src="bin\Release\PicoCalcNano.Keyboard.pdb"  target="lib\PicoCalcNano.Keyboard.pdb" />
   <file src="bin\Release\PicoCalcNano.Keyboard.pdbx" target="lib\PicoCalcNano.Keyboard.pdbx" />
   <file src="bin\Release\PicoCalcNano.Keyboard.pe"   target="lib\PicoCalcNano.Keyboard.pe" />
-  <file src="bin\Release\PicoCalcNano.Keyboard.xml"  target="lib\PicoCalcNano.Keyboard.xml" />
   <file src="..\..\..\docs\keyboard.md"  target="docs\README.md" />
   <file src="..\..\..\images\logo128.png" target="images\logo.png" />
   <file src="..\..\..\LICENSE" target="LICENSE.md" />
