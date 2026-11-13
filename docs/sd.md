@@ -13,6 +13,14 @@ Two layers, in two files:
 - Validated on a 1 GB SD v1 card (FAT16) and on a 64 GB SDXC card formatted as FAT32, with `chkdsk` clean after reads,
   writes, deletions, folder creation and renaming
 
+## Why this driver?
+
+nanoFramework ships `nanoFramework.System.IO.FileSystem`, but on the firmware tested here (`PICO2_RP2350_W`,
+CLR 1.18.0.84) it could not mount an SD card over SPI on the PicoCalc slot. This driver is written in pure C#,
+needs no native support from the firmware (only the SPI and GPIO drivers), and gives you a FAT16 / FAT32 file system
+on the SD slot. It was not tested on the `PICO_RP2040` firmware with the built-in file system, so the statement above
+only covers the Pico 2 W.
+
 ## Hardware
 
 The PicoCalc has a **full-size SD** slot on SPI0:
@@ -134,7 +142,7 @@ Paths use `/` or `\`, relative to the root: `"HELLO.TXT"`, `"TEST/NOTE.TXT"`. Ma
 ### Date and time
 
 The Pico has no clock. Files get the date in `FileDate` / `FileTime` (default: 2026-11-11 00:00). Call
-`SetTimestamp` to set it, for example from a clock you read over the network.
+`SetTimestamp` to set it, for example from a clock you read over the network (the Pico W firmware includes SNTP).
 
 ## Behaviour and limits
 

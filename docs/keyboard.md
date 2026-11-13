@@ -29,7 +29,7 @@ handled by the MCU, not by this driver.
 
 ```csharp
 using System.Threading;
-using PicoCalc;
+using PicoCalcNano;
 
 var keyboard = new PicoCalcKeyboard();      // I2C bus 1, address 0x1F
 keyboard.KeyDown += (sender, e) =>

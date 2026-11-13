@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>PicoCalcNano.SdCard</id>
+    <version>$version$</version>
+    <title>PicoCalcNano.SdCard</title>
+    <authors>Stéphane Sibué</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+	<license type="expression">Apache-2.0</license>
+    <readme>docs\README.md</readme>
+    <developmentDependency>false</developmentDependency>
+    <projectUrl>https://github.com/sydney680928/PicoCalcNanoFramework</projectUrl>
+    <icon>images\logo.png</icon>
+    <repository type="git" url="https://github.com/sydney680928/PicoCalcNanoFramework" />
+    <copyright>Copyright (c) Stéphane Sibué</copyright>
+    <description>SD card (SPI) and FAT16/FAT32 file system driver for the Clockwork PicoCalc on .NET nanoFramework. Pure C#, no native firmware support needed. Community project, not affiliated with Clockwork.</description>
+    <tags>nanoFramework C# csharp picocalc SdCard rp2040 rp2350 pico</tags>
+    <dependencies>
+      <dependency id="nanoFramework.CoreLibrary" version="1.17.11" />
+      <dependency id="nanoFramework.System.Device.Gpio" version="1.1.64" />
+	  <dependency id="nanoFramework.System.Device.Spi" version="1.3.90" />
+    </dependencies>
+  </metadata>
+<files>
+  <file src="bin\Release\PicoCalcNano.SdCard.dll"  target="lib\PicoCalcNano.SdCard.dll" />
+  <file src="bin\Release\PicoCalcNano.SdCard.pdb"  target="lib\PicoCalcNano.SdCard.pdb" />
+  <file src="bin\Release\PicoCalcNano.SdCard.pdbx" target="lib\PicoCalcNano.SdCard.pdbx" />
+  <file src="bin\Release\PicoCalcNano.SdCard.pe"   target="lib\PicoCalcNano.SdCard.pe" />
+  <file src="..\..\..\docs\sd.md"  target="docs\README.md" />
+  <file src="..\..\..\images\logo128.png" target="images\logo.png" />
+  <file src="..\..\..\LICENSE" target="\LICENSE.md" />
+</files>
+</package>

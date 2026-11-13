@@ -62,7 +62,8 @@ The SD card and the sound are used on their own, see their docs.
 4. nanoFramework strings are UTF-8 internally: indexing and `Length` are O(n). Use `ToCharArray()` for large texts.
 5. The PicoCalc backlight is controlled by the keyboard MCU: `Alt + ,` and `Alt + .` change the brightness.
 
-## Font license
+## Licenses
 
-The glyph table comes from GNU Unifont, dual-licensed under GPL v2+ with the Font Embedding Exception, or the SIL
-Open Font License 1.1. Keep the notice at the top of `PicoCalcFont.cs`.
+The code is licensed under the Apache License 2.0 (`LICENSE`). The glyph table in `PicoCalcFont.cs` is derived from
+GNU Unifont and is used under the SIL Open Font License 1.1: see `NOTICE.md`. Keep that notice and the header of
+`PicoCalcFont.cs` if you redistribute the table.
