@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>PicoCalcNano.Console</id>
+    <version>$version$</version>
+    <title>PicoCalcNano.Console</title>
+    <authors>Stéphane Sibué</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">Apache-2.0</license>
+    <readme>docs\README.md</readme>
+    <developmentDependency>false</developmentDependency>
+    <projectUrl>https://github.com/sydney680928/PicoCalcNanoFramework</projectUrl>
+    <icon>images\logo.png</icon>
+    <repository type="git" url="https://github.com/sydney680928/PicoCalcNanoFramework" />
+    <copyright>Copyright (c) Stéphane Sibué</copyright>
+    <description>Text console for the Clockwork PicoCalc on .NET nanoFramework: line editing, history, key input and a graphics mode, on top of PicoCalcNano.Display and PicoCalcNano.Keyboard. Community project, not affiliated with Clockwork.</description>
+    <tags>nanoFramework C# csharp picocalc console terminal rp2040 rp2350 pico</tags>
+    <dependencies>
+      <dependency id="nanoFramework.CoreLibrary" version="1.17.11" />
+      <dependency id="nanoFramework.System.Collections" version="1.5.75" />
+      <dependency id="PicoCalcNano.Display" version="$displayVersion$" />
+      <dependency id="PicoCalcNano.Keyboard" version="$keyboardVersion$" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="bin\Release\PicoCalcNano.Console.dll"  target="lib\PicoCalcNano.Console.dll" />
+    <file src="bin\Release\PicoCalcNano.Console.pdb"  target="lib\PicoCalcNano.Console.pdb" />
+    <file src="bin\Release\PicoCalcNano.Console.pdbx" target="lib\PicoCalcNano.Console.pdbx" />
+    <file src="bin\Release\PicoCalcNano.Console.pe"   target="lib\PicoCalcNano.Console.pe" />
+    <file src="..\..\..\docs\console.md" target="docs\README.md" />
+    <file src="..\..\..\images\logo128.png" target="images\logo.png" />
+    <file src="..\..\..\LICENSE" target="LICENSE.md" />
+  </files>
+</package>

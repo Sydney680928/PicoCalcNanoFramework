@@ -1,0 +1,450 @@
+// PicoCalcConsole - a standalone text console for the PicoCalc (.NET nanoFramework).
+//
+// Keyboard in, 40x20 text screen out, with line editing and history. It knows nothing about
+// any particular application: use it for a REPL, a shell, a game menu, logs...
+//
+//     var console = new PicoCalcConsole();
+//     console.Start();
+//     console.WriteLine("Hello");
+//     console.Write("> ");
+//     string line = console.ReadLine();     // null if Break (Shift+Esc) or Ctrl+C was pressed
+//
+// The screen is refreshed by an internal thread; callers do not need to Flush or lock.
+// Write/WriteLine can be called from any thread. ReadLine/ReadKey block the calling thread.
+//
+// Line editing in ReadLine: Left/Right, Home/End, Backspace, Delete, Up/Down = history,
+// Esc = clear the line, Enter = validate.
+//
+// Needs: PicoCalcKeyboard.cs, PicoCalcDisplay.cs, PicoCalcTextScreen.cs, PicoCalcFont.cs.
+// Set ForegroundColor / BackgroundColor BEFORE Start().
+
+using System;
+using System.Collections;
+using System.Threading;
+
+namespace PicoCalcNano
+{
+    public delegate void PicoCalcBreakHandler(object sender);
+
+    public class PicoCalcConsole : IDisposable
+    {
+        private const int MaxLineLength = 200;
+        private const int MaxHistory = 20;
+        private const int MaxQueuedKeys = 64;
+
+        private readonly PicoCalcDisplay _display;
+        private readonly PicoCalcKeyboard _keyboard;
+        private readonly object _lock = new object();          // protects the text screen
+        private readonly Queue _keys = new Queue();            // key events waiting for ReadKey
+        private readonly AutoResetEvent _keyArrived = new AutoResetEvent(false);
+        private readonly ArrayList _history = new ArrayList();
+
+        private PicoCalcTextScreen _screen;
+        private Thread _refreshThread;
+        private bool _running;
+        private bool _blinkReset;
+        private bool _graphics;   // true while the program draws directly on the display
+
+        // Where the line being edited starts (screen coordinates, kept up to date when the screen scrolls)
+        private int _inputX;
+        private int _inputY;
+
+        public int ForegroundColor = PicoCalcColors.White;
+        public int BackgroundColor = PicoCalcColors.Black;
+
+        /// <summary>Raised (on the keyboard thread) when Break (Shift+Esc) or Ctrl+C is pressed,
+        /// whether or not ReadLine is waiting. Typical use: stop a running script.</summary>
+        public event PicoCalcBreakHandler BreakPressed;
+
+        /// <summary>The display, for direct drawing between BeginGraphics() and EndGraphics().</summary>
+        public PicoCalcDisplay Display { get { return _display; } }
+
+        public int Columns { get { return PicoCalcTextScreen.Columns; } }
+        public int Rows { get { return PicoCalcTextScreen.Rows; } }
+
+        /// <summary>True if a key event is waiting for ReadKey().</summary>
+        public bool KeyAvailable
+        {
+            get
+            {
+                lock (_keys)
+                {
+                    return _keys.Count > 0;
+                }
+            }
+        }
+
+        public PicoCalcConsole() : this(62500000)
+        {
+        }
+
+        /// <param name="spiFrequency">SPI clock; the firmware caps anything above 62.5 MHz.</param>
+        public PicoCalcConsole(int spiFrequency)
+        {
+            _display = new PicoCalcDisplay(spiFrequency);
+            _keyboard = new PicoCalcKeyboard();
+        }
+
+        /// <summary>Initialise the display, clear it, start the keyboard and the refresh thread.</summary>
+        public void Start()
+        {
+            _display.Init();
+
+            _screen = new PicoCalcTextScreen(_display);
+            _screen.ForegroundColor = ForegroundColor;
+            _screen.BackgroundColor = BackgroundColor;
+            _screen.ClearPanel();
+            _screen.Flush();
+
+            _keyboard.KeyDown += OnKeyDown;
+            _keyboard.Start();
+
+            _running = true;
+            _refreshThread = new Thread(new ThreadStart(RefreshLoop));
+            _refreshThread.Start();
+        }
+
+        public void Write(string text)
+        {
+            lock (_lock)
+            {
+                _screen.Write(text);
+            }
+        }
+
+        public void Write(char c)
+        {
+            lock (_lock)
+            {
+                _screen.Write(c);
+            }
+        }
+
+        public void WriteLine(string text)
+        {
+            lock (_lock)
+            {
+                _screen.WriteLine(text);
+            }
+        }
+
+        public void WriteLine()
+        {
+            lock (_lock)
+            {
+                _screen.NewLine();
+            }
+        }
+
+        /// <summary>Clear the screen and put the cursor at the top left.</summary>
+        public void Clear()
+        {
+            lock (_lock)
+            {
+                _screen.Clear();
+            }
+        }
+
+        public void SetCursor(int x, int y)
+        {
+            lock (_lock)
+            {
+                _screen.SetCursor(x, y);
+            }
+        }
+
+        public bool CursorVisible
+        {
+            get { return _screen.CursorVisible; }
+            set
+            {
+                lock (_lock)
+                {
+                    _screen.CursorVisible = value;
+                    _screen.Invalidate();
+                }
+            }
+        }
+
+        /// <summary>Enter graphics mode: the text refresh is paused so that you can draw on Display
+        /// (screen coordinates 0..319). Call EndGraphics() to get the text screen back as it was.</summary>
+        public void BeginGraphics()
+        {
+            lock (_lock)
+            {
+                _graphics = true;
+                _screen.PrepareDirectDrawing();
+            }
+        }
+
+        /// <summary>Leave graphics mode: the panel is wiped and the text screen is redrawn.</summary>
+        public void EndGraphics()
+        {
+            lock (_lock)
+            {
+                _screen.RestoreAfterDirectDrawing();
+                _graphics = false;
+            }
+        }
+
+        /// <summary>Forget the key presses that are waiting for ReadKey().</summary>
+        public void ClearKeys()
+        {
+            lock (_keys)
+            {
+                _keys.Clear();
+            }
+        }
+
+        /// <summary>Wait for the next key press (auto-repeat included). Modifier keys alone are not reported.</summary>
+        public PicoCalcKeyEventArgs ReadKey()
+        {
+            while (true)
+            {
+                lock (_keys)
+                {
+                    if (_keys.Count > 0)
+                    {
+                        return (PicoCalcKeyEventArgs)_keys.Dequeue();
+                    }
+                }
+
+                _keyArrived.WaitOne();
+            }
+        }
+
+        public string ReadLine(string prompt)
+        {
+            Write(prompt);
+            return ReadLine();
+        }
+
+        /// <summary>
+        /// Read a line with editing. Returns the text when Enter is pressed,
+        /// or null if Break / Ctrl+C is pressed (the line is abandoned).
+        /// </summary>
+        public string ReadLine()
+        {
+            string text = "";
+            int index = 0;
+            int historyPos = _history.Count;
+            string saved = "";
+
+            lock (_lock)
+            {
+                _inputX = _screen.CursorX;
+                _inputY = _screen.CursorY;
+            }
+
+            while (true)
+            {
+                PicoCalcKeyEventArgs e = ReadKey();
+                string before = text;
+                int code = e.Code;
+
+                if (IsBreak(e))
+                {
+                    lock (_lock)
+                    {
+                        PlaceCursor(text.Length);
+                        _screen.WriteLine("^C");
+                    }
+
+                    return null;
+                }
+
+                if (code == PicoCalcKeys.Enter)
+                {
+                    lock (_lock)
+                    {
+                        PlaceCursor(text.Length);
+                        _screen.NewLine();
+                    }
+
+                    if (text.Length > 0 && (_history.Count == 0 || (string)_history[_history.Count - 1] != text))
+                    {
+                        _history.Add(text);
+                        if (_history.Count > MaxHistory)
+                        {
+                            _history.RemoveAt(0);
+                        }
+                    }
+
+                    return text;
+                }
+                else if (code == PicoCalcKeys.Left)
+                {
+                    if (index > 0) index--;
+                }
+                else if (code == PicoCalcKeys.Right)
+                {
+                    if (index < text.Length) index++;
+                }
+                else if (code == PicoCalcKeys.Home)
+                {
+                    index = 0;
+                }
+                else if (code == PicoCalcKeys.End)
+                {
+                    index = text.Length;
+                }
+                else if (code == PicoCalcKeys.Backspace)
+                {
+                    if (index > 0)
+                    {
+                        text = text.Substring(0, index - 1) + text.Substring(index);
+                        index--;
+                    }
+                }
+                else if (code == PicoCalcKeys.Delete)
+                {
+                    if (index < text.Length)
+                    {
+                        text = text.Substring(0, index) + text.Substring(index + 1);
+                    }
+                }
+                else if (code == PicoCalcKeys.Esc)
+                {
+                    text = "";
+                    index = 0;
+                }
+                else if (code == PicoCalcKeys.Up)
+                {
+                    if (historyPos > 0)
+                    {
+                        if (historyPos == _history.Count)
+                        {
+                            saved = text;
+                        }
+
+                        historyPos--;
+                        text = (string)_history[historyPos];
+                        index = text.Length;
+                    }
+                }
+                else if (code == PicoCalcKeys.Down)
+                {
+                    if (historyPos < _history.Count)
+                    {
+                        historyPos++;
+                        text = historyPos == _history.Count ? saved : (string)_history[historyPos];
+                        index = text.Length;
+                    }
+                }
+                else if (e.HasChar && e.Char >= ' ' && !e.Ctrl && !e.Alt)
+                {
+                    if (text.Length < MaxLineLength)
+                    {
+                        text = text.Substring(0, index) + e.Char.ToString() + text.Substring(index);
+                        index++;
+                    }
+                }
+
+                lock (_lock)
+                {
+                    RedrawInput(text, before.Length, index);
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            _running = false;
+            _keyboard.Dispose();
+            _display.Dispose();
+        }
+
+        private static bool IsBreak(PicoCalcKeyEventArgs e)
+        {
+            return e.Code == PicoCalcKeys.Break || (e.Ctrl && e.Char == (char)3);
+        }
+
+        // Rewrite the edited line from its start (only the cells that differ are really redrawn),
+        // blank what is left of a longer previous version, then put the cursor at 'index'.
+        // Must be called with _lock held.
+        private void RedrawInput(string text, int previousLength, int index)
+        {
+            int scrollsBefore = _screen.ScrollCount;
+
+            _screen.SetCursor(_inputX, _inputY);
+            _screen.Write(text);
+            for (int i = text.Length; i < previousLength; i++)
+            {
+                _screen.Write(' ');
+            }
+
+            // If writing scrolled the screen, the line start moved up with it
+            _inputY -= _screen.ScrollCount - scrollsBefore;
+            if (_inputY < 0)
+            {
+                _inputY = 0;
+            }
+
+            PlaceCursor(index);
+        }
+
+        // Put the screen cursor on the character 'index' of the edited line. Must be called with _lock held.
+        private void PlaceCursor(int index)
+        {
+            int position = _inputX + index;
+            _screen.SetCursor(position % Columns, _inputY + position / Columns);
+            _blinkReset = true;
+        }
+
+        private void OnKeyDown(object sender, PicoCalcKeyEventArgs e)
+        {
+            if (IsBreak(e))
+            {
+                PicoCalcBreakHandler handler = BreakPressed;
+                if (handler != null)
+                {
+                    handler(this);
+                }
+            }
+
+            lock (_keys)
+            {
+                if (_keys.Count < MaxQueuedKeys)
+                {
+                    _keys.Enqueue(e);
+                }
+            }
+
+            _keyArrived.Set();
+        }
+
+        private void RefreshLoop()
+        {
+            int tick = 0;
+
+            while (_running)
+            {
+                lock (_lock)
+                {
+                    if (!_graphics)
+                    {
+                        if (_blinkReset)
+                        {
+                            _blinkReset = false;
+                            tick = 0;
+                            _screen.CursorVisible = true;
+                            _screen.Invalidate();
+                        }
+
+                        tick++;
+                        if (tick >= 25)   // about every 500 ms
+                        {
+                            tick = 0;
+                            _screen.CursorVisible = !_screen.CursorVisible;
+                            _screen.Invalidate();
+                        }
+
+                        _screen.Flush();
+                    }
+                }
+
+                Thread.Sleep(20);
+            }
+        }
+    }
+}
