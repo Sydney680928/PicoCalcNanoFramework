@@ -51,7 +51,7 @@ namespace PicoCalc
                 }
                 else if (line == "bye")
                 {
-                    console.WriteLine("A bientot !");
+                    console.WriteLine("Good bye !");
                     Thread.Sleep(Timeout.Infinite);
                 }
                 else if (line == "graph")
