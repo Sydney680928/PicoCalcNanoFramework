@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>PicoCalcNano.Sound</id>
+    <version>$version$</version>
+    <title>PicoCalcNano.Sound</title>
+    <authors>Stéphane Sibué</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">Apache-2.0</license>
+    <readme>docs\README.md</readme>
+    <developmentDependency>false</developmentDependency>
+    <projectUrl>https://github.com/sydney680928/PicoCalcNanoFramework</projectUrl>
+    <icon>images\logo.png</icon>
+    <repository type="git" url="https://github.com/sydney680928/PicoCalcNanoFramework" />
+    <copyright>Copyright (c) Stéphane Sibué</copyright>
+    <description>Sound driver for the Clockwork PicoCalc on .NET nanoFramework: beeps, notes and melodies on the left and right speakers. Community project, not affiliated with Clockwork.</description>
+    <tags>nanoFramework C# csharp picocalc sound audio pwm rp2040 rp2350 pico</tags>
+    <dependencies>
+      <dependency id="nanoFramework.CoreLibrary" version="1.17.11" />
+      <dependency id="nanoFramework.System.Device.Pwm" version="1.1.23" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="bin\Release\PicoCalcNano.Sound.dll"  target="lib\PicoCalcNano.Sound.dll" />
+    <file src="bin\Release\PicoCalcNano.Sound.pdb"  target="lib\PicoCalcNano.Sound.pdb" />
+    <file src="bin\Release\PicoCalcNano.Sound.pdbx" target="lib\PicoCalcNano.Sound.pdbx" />
+    <file src="bin\Release\PicoCalcNano.Sound.pe"   target="lib\PicoCalcNano.Sound.pe" />
+    <file src="..\..\..\docs\sound.md" target="docs\README.md" />
+    <file src="..\..\..\images\logo128.png" target="images\logo.png" />
+    <file src="..\..\..\LICENSE" target="LICENSE.md" />
+  </files>
+</package>
