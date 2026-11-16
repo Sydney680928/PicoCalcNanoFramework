@@ -1,4 +1,4 @@
-// Copyright 2026 Stéphane Sibué
+// Copyright 2026 StÃ©phane SibuÃ©
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 // (plus one blank row to draw), instead of redrawing the whole screen.
 //
 // Not thread-safe: lock around it if several threads use it (PicoCalcConsole does).
-// Needs: PicoCalcDisplay.cs, PicoCalcFont.cs (namespace PicoCalcNano).
+// NuGet package needed: PicoCalcNano.Display (the font is included).
 
 using System;
 

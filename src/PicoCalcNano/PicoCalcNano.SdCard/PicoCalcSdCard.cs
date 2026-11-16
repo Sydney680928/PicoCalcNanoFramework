@@ -1,4 +1,4 @@
-// Copyright 2026 Stéphane Sibué
+// Copyright 2026 StÃ©phane SibuÃ©
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@
 // Protocol summary (SPI mode): at least 74 clocks with CS high, CMD0 (go idle),
 // CMD8 (voltage check, only SD v2 answers), ACMD41 (initialisation loop),
 // CMD58 (read OCR: bit 30 = SDHC), CMD9 (read CSD: capacity), CMD17 (read one block).
-// The clock stays at 400 kHz during initialisation, then switches to the data clock.
+// The clock stays low during initialisation (see InitClocks), then switches to the data clock.
 //
 // NuGet packages needed: nanoFramework.System.Device.Spi, nanoFramework.System.Device.Gpio
 //
@@ -166,7 +166,7 @@ namespace PicoCalcNano
 
             if (r != 0x01)
             {
-                _error = "CMD0: pas de reponse de la carte (R1 = " + Hex(r) + "). Carte absente ou mal inseree ?";
+                _error = "CMD0: no answer from the card (R1 = " + Hex(r) + "). Card missing or not inserted properly?";
                 return false;
             }
 
@@ -186,7 +186,7 @@ namespace PicoCalcNano
                 if (b2 != 0x01 || b3 != 0xAA)
                 {
                     Deselect();
-                    _error = "CMD8: reponse incoherente (" + Hex(b0) + " " + Hex(b1) + " " + Hex(b2) + " " + Hex(b3) + ")";
+                    _error = "CMD8: inconsistent answer (" + Hex(b0) + " " + Hex(b1) + " " + Hex(b2) + " " + Hex(b3) + ")";
                     return false;
                 }
 
@@ -195,7 +195,7 @@ namespace PicoCalcNano
             else
             {
                 Deselect();
-                _error = "CMD8: reponse inattendue (R1 = " + Hex(r) + ")";
+                _error = "CMD8: unexpected answer (R1 = " + Hex(r) + ")";
                 return false;
             }
 
@@ -220,7 +220,7 @@ namespace PicoCalcNano
 
             if (!ready)
             {
-                _error = "ACMD41: la carte ne sort pas de l'etat idle (CMD55 R1 = " + Hex(r55) + ", ACMD41 R1 = " + Hex(r) + ")";
+                _error = "ACMD41: the card does not leave the idle state (CMD55 R1 = " + Hex(r55) + ", ACMD41 R1 = " + Hex(r) + ")";
                 return false;
             }
 
@@ -231,7 +231,7 @@ namespace PicoCalcNano
                 if (r != 0x00)
                 {
                     Deselect();
-                    _error = "CMD58: erreur (R1 = " + Hex(r) + ")";
+                    _error = "CMD58: error (R1 = " + Hex(r) + ")";
                     return false;
                 }
 
@@ -253,7 +253,7 @@ namespace PicoCalcNano
                 r = Command(16, BlockSize, 0x01);
                 if (r != 0x00)
                 {
-                    _error = "CMD16: erreur (R1 = " + Hex(r) + ")";
+                    _error = "CMD16: error (R1 = " + Hex(r) + ")";
                     return false;
                 }
             }
@@ -274,13 +274,13 @@ namespace PicoCalcNano
         {
             if (_type == PicoCalcSdType.Unknown)
             {
-                _error = "Carte non initialisee";
+                _error = "Card not initialised";
                 return false;
             }
 
             if (buffer == null || buffer.Length < BlockSize)
             {
-                _error = "Buffer trop petit (512 octets minimum)";
+                _error = "Buffer too small (512 bytes minimum)";
                 return false;
             }
 
@@ -289,7 +289,7 @@ namespace PicoCalcNano
             if (r != 0x00)
             {
                 Deselect();
-                _error = "CMD17: erreur (R1 = " + Hex(r) + ")";
+                _error = "CMD17: error (R1 = " + Hex(r) + ")";
                 return false;
             }
 
@@ -303,13 +303,13 @@ namespace PicoCalcNano
         {
             if (_type == PicoCalcSdType.Unknown)
             {
-                _error = "Carte non initialisee";
+                _error = "Card not initialised";
                 return false;
             }
 
             if (buffer == null || buffer.Length < BlockSize)
             {
-                _error = "Buffer trop petit (512 octets minimum)";
+                _error = "Buffer too small (512 bytes minimum)";
                 return false;
             }
 
@@ -318,7 +318,7 @@ namespace PicoCalcNano
             if (r != 0x00)
             {
                 Deselect();
-                _error = "CMD24: erreur (R1 = " + Hex(r) + ")";
+                _error = "CMD24: error (R1 = " + Hex(r) + ")";
                 return false;
             }
 
@@ -333,7 +333,7 @@ namespace PicoCalcNano
             if ((response & 0x1F) != 0x05)
             {
                 Deselect();
-                _error = "Ecriture refusee (reponse " + Hex(response) + ")";
+                _error = "Write rejected (response " + Hex(response) + ")";
                 return false;
             }
 
@@ -351,7 +351,7 @@ namespace PicoCalcNano
             Deselect();
             if (!done)
             {
-                _error = "Ecriture: la carte reste occupee (timeout)";
+                _error = "Write: the card stays busy (timeout)";
                 return false;
             }
 
@@ -378,7 +378,7 @@ namespace PicoCalcNano
             if (r != 0x00)
             {
                 Deselect();
-                _error = "CMD9: erreur (R1 = " + Hex(r) + ")";
+                _error = "CMD9: error (R1 = " + Hex(r) + ")";
                 return false;
             }
 
@@ -518,14 +518,14 @@ namespace PicoCalcNano
 
                 if (t != 0xFF)
                 {
-                    _error = "Lecture: jeton d'erreur " + Hex(t);
+                    _error = "Read: error token " + Hex(t);
                     return false;
                 }
             }
 
             if (!token)
             {
-                _error = "Lecture: pas de jeton de donnees (timeout)";
+                _error = "Read: no data token (timeout)";
                 return false;
             }
 

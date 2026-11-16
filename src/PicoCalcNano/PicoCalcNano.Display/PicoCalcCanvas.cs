@@ -1,4 +1,4 @@
-// Copyright 2026 Stéphane Sibué
+// Copyright 2026 StÃ©phane SibuÃ©
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@
 //     canvas.FillCircle(60, 60, 30, PicoCalcColors.Yellow);
 //     canvas.DrawTo(display, 100, 100);
 //
-// Needs: PicoCalcDisplay.cs, PicoCalcFont.cs (namespace PicoCalcNano).
+// NuGet package needed: PicoCalcNano.Display (the font is included).
 
 using System;
 

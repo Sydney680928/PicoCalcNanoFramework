@@ -1,4 +1,4 @@
-// Copyright 2026 Stéphane Sibué
+// Copyright 2026 StÃ©phane SibuÃ©
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@
 // Line editing in ReadLine: Left/Right, Home/End, Backspace, Delete, Up/Down = history,
 // Esc = clear the line, Enter = validate.
 //
-// Needs: PicoCalcKeyboard.cs, PicoCalcDisplay.cs, PicoCalcTextScreen.cs, PicoCalcFont.cs.
+// NuGet packages needed: PicoCalcNano.Keyboard and PicoCalcNano.Display (the latter brings the font).
 // Set ForegroundColor / BackgroundColor BEFORE Start().
 
 using System;

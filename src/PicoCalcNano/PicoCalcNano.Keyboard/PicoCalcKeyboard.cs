@@ -1,4 +1,4 @@
-// Copyright 2026 St�phane Sibu�
+// Copyright 2026 Stéphane Sibué
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ namespace PicoCalcNano
         public const byte F4 = 0x84;
         public const byte F5 = 0x85;
         public const byte F6 = 0x86;
-        public const byte F7 = 0x87; 
+        public const byte F7 = 0x87;
         public const byte F8 = 0x88;
         public const byte F9 = 0x89;
         public const byte F10 = 0x90;

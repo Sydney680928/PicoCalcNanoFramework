@@ -1,4 +1,4 @@
-// Copyright 2026 Stéphane Sibué
+// Copyright 2026 StÃ©phane SibuÃ©
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,10 +22,11 @@
 //
 // Writing: WriteFile / WriteAllText create or replace a file (8.3 name, upper case), DeleteFile,
 // CreateDirectory, DeleteDirectory (empty folders only), Rename (same folder). Not supported yet:
-// growing a full directory, FAT12 (cards under 8 MB), exFAT, creating long file names. No clock on the Pico: the date stored in files is FileDate / FileTime
-// (set them with SetTimestamp). The FAT32 "free clusters" hint is invalidated on the first write.
+// growing a full directory, FAT12 (cards under 8 MB), exFAT, creating long file names.
+// No clock on the Pico: the date stored in files is FileDate / FileTime (set them with SetTimestamp).
+// The FAT32 "free clusters" hint is invalidated on the first write.
 //
-// NuGet packages needed: the ones of PicoCalcSdCard (Spi, Gpio). PicoCalcSdCard.cs must be in the project.
+// NuGet package needed: PicoCalcNano.SdCard.
 //
 // Usage:
 //     var sd = new PicoCalcSdCard();
@@ -135,7 +136,7 @@ namespace PicoCalcNano
 
             if (_sector[510] != 0x55 || _sector[511] != 0xAA)
             {
-                _error = "Bloc 0 sans signature 55 AA";
+                _error = "Block 0 has no 55 AA signature";
                 return false;
             }
 
@@ -158,7 +159,7 @@ namespace PicoCalcNano
 
                 if (!found)
                 {
-                    _error = "Aucune partition FAT16 / FAT32 trouvee";
+                    _error = "No FAT16 / FAT32 partition found";
                     return false;
                 }
 
@@ -169,7 +170,7 @@ namespace PicoCalcNano
 
                 if (_sector[510] != 0x55 || _sector[511] != 0xAA || !LooksLikeBootSector(_sector))
                 {
-                    _error = "Secteur de demarrage de la partition invalide";
+                    _error = "Invalid partition boot sector";
                     return false;
                 }
             }
@@ -195,7 +196,7 @@ namespace PicoCalcNano
 
             if (bytesPerSector != 512 || _sectorsPerCluster == 0 || fats == 0 || fatSize == 0)
             {
-                _error = "Parametres FAT invalides (octets par secteur = " + bytesPerSector + ")";
+                _error = "Invalid FAT parameters (bytes per sector = " + bytesPerSector + ")";
                 return false;
             }
 
@@ -205,7 +206,7 @@ namespace PicoCalcNano
 
             if (_totalClusters < 4085)
             {
-                _error = "FAT12 non supporte";
+                _error = "FAT12 is not supported";
                 return false;
             }
 
@@ -243,7 +244,7 @@ namespace PicoCalcNano
 
             if (!dir.IsDirectory)
             {
-                _error = "Ce n'est pas un dossier : " + path;
+                _error = "Not a folder: " + path;
                 return null;
             }
 
@@ -283,13 +284,13 @@ namespace PicoCalcNano
 
             if (entry.IsDirectory)
             {
-                _error = "C'est un dossier : " + path;
+                _error = "This is a folder: " + path;
                 return null;
             }
 
             if (entry.Size > (uint)MaxReadSize)
             {
-                _error = "Fichier trop gros (" + entry.Size + " octets, maximum " + MaxReadSize + ")";
+                _error = "File too big (" + entry.Size + " bytes, maximum " + MaxReadSize + ")";
                 return null;
             }
 
@@ -319,7 +320,7 @@ namespace PicoCalcNano
 
             if (remaining > 0)
             {
-                _error = "Chaine de clusters interrompue avant la fin du fichier";
+                _error = "Cluster chain ends before the end of the file";
                 return null;
             }
 
@@ -399,7 +400,7 @@ namespace PicoCalcNano
 
                 if (!current.IsDirectory)
                 {
-                    _error = "Ce n'est pas un dossier : " + current.Name;
+                    _error = "Not a folder: " + current.Name;
                     return null;
                 }
 
@@ -423,7 +424,7 @@ namespace PicoCalcNano
 
                 if (found == null)
                 {
-                    _error = "Introuvable : " + part;
+                    _error = "Not found: " + part;
                     return null;
                 }
 
@@ -593,7 +594,7 @@ namespace PicoCalcNano
 
             if (data == null)
             {
-                _error = "Donnees nulles";
+                _error = "Data is null";
                 return false;
             }
 
@@ -611,7 +612,7 @@ namespace PicoCalcNano
 
             if (last < 0)
             {
-                _error = "Chemin vide";
+                _error = "Empty path";
                 return false;
             }
 
@@ -628,7 +629,7 @@ namespace PicoCalcNano
             byte[] name11 = ToShortName(fileName);
             if (name11 == null)
             {
-                _error = "Nom non valide (8.3, lettres, chiffres, _ - ~) : " + fileName;
+                _error = "Invalid name (8.3, letters, digits, _ - ~): " + fileName;
                 return false;
             }
 
@@ -640,7 +641,7 @@ namespace PicoCalcNano
 
             if (!dir.IsDirectory)
             {
-                _error = "Ce n'est pas un dossier : " + parent;
+                _error = "Not a folder: " + parent;
                 return false;
             }
 
@@ -671,13 +672,13 @@ namespace PicoCalcNano
                 byte attributes = _sector[entryOffset + 11];
                 if ((attributes & 0x10) != 0)
                 {
-                    _error = "C'est un dossier : " + fileName;
+                    _error = "This is a folder: " + fileName;
                     return false;
                 }
 
                 if ((attributes & 0x01) != 0)
                 {
-                    _error = "Fichier en lecture seule : " + fileName;
+                    _error = "File is read-only: " + fileName;
                     return false;
                 }
 
@@ -696,7 +697,7 @@ namespace PicoCalcNano
             {
                 if (!_freeFound)
                 {
-                    _error = "Dossier plein (l'agrandissement d'un dossier n'est pas gere)";
+                    _error = "Folder full (growing a folder is not supported)";
                     return false;
                 }
 
@@ -819,7 +820,7 @@ namespace PicoCalcNano
 
             if (!_slotFound)
             {
-                _error = "Introuvable : " + path;
+                _error = "Not found: " + path;
                 return false;
             }
 
@@ -843,7 +844,7 @@ namespace PicoCalcNano
 
             if (!_slotFound)
             {
-                _error = "Introuvable : " + path;
+                _error = "Not found: " + path;
                 return false;
             }
 
@@ -867,13 +868,13 @@ namespace PicoCalcNano
 
             if (_slotFound)
             {
-                _error = "Existe deja : " + path;
+                _error = "Already exists: " + path;
                 return false;
             }
 
             if (!_freeFound)
             {
-                _error = "Dossier plein (l'agrandissement d'un dossier n'est pas gere)";
+                _error = "Folder full (growing a folder is not supported)";
                 return false;
             }
 
@@ -969,14 +970,14 @@ namespace PicoCalcNano
 
             if (!_slotFound)
             {
-                _error = "Introuvable : " + path;
+                _error = "Not found: " + path;
                 return false;
             }
 
             byte[] newName11 = ToShortName(newName);
             if (newName11 == null)
             {
-                _error = "Nouveau nom non valide (8.3, lettres, chiffres, _ - ~) : " + newName;
+                _error = "Invalid new name (8.3, letters, digits, _ - ~): " + newName;
                 return false;
             }
 
@@ -1003,7 +1004,7 @@ namespace PicoCalcNano
 
             if (_slotFound)
             {
-                _error = "Existe deja : " + newName;
+                _error = "Already exists: " + newName;
                 return false;
             }
 
@@ -1055,13 +1056,13 @@ namespace PicoCalcNano
             bool isDirectory = (attributes & 0x10) != 0;
             if (isDirectory != directory)
             {
-                _error = directory ? "Ce n'est pas un dossier" : "C'est un dossier (utiliser DeleteDirectory)";
+                _error = directory ? "Not a folder" : "This is a folder (use DeleteDirectory)";
                 return false;
             }
 
             if ((attributes & 0x01) != 0)
             {
-                _error = "Lecture seule";
+                _error = "Read-only";
                 return false;
             }
 
@@ -1081,7 +1082,7 @@ namespace PicoCalcNano
 
                 if (content.Count > 0)
                 {
-                    _error = "Le dossier n'est pas vide";
+                    _error = "The folder is not empty";
                     return false;
                 }
             }
@@ -1193,7 +1194,7 @@ namespace PicoCalcNano
 
             if (last < 0)
             {
-                _error = "Chemin vide";
+                _error = "Empty path";
                 return false;
             }
 
@@ -1225,7 +1226,7 @@ namespace PicoCalcNano
             name11 = ToShortName(fileName);
             if (name11 == null)
             {
-                _error = "Nom non valide (8.3, lettres, chiffres, _ - ~) : " + fileName;
+                _error = "Invalid name (8.3, letters, digits, _ - ~): " + fileName;
                 return false;
             }
 
@@ -1237,7 +1238,7 @@ namespace PicoCalcNano
 
             if (!parent.IsDirectory)
             {
-                _error = "Ce n'est pas un dossier : " + parentPath;
+                _error = "Not a folder: " + parentPath;
                 return false;
             }
 
@@ -1306,7 +1307,7 @@ namespace PicoCalcNano
 
             if (found < count)
             {
-                _error = "Carte pleine";
+                _error = "Card full";
                 return null;
             }
 
@@ -1713,7 +1714,7 @@ namespace PicoCalcNano
                 return true;
             }
 
-            _error = "Ecriture du secteur " + sector + " : " + _card.ErrorMessage;
+            _error = "Write of sector " + sector + " : " + _card.ErrorMessage;
             return false;
         }
 
@@ -1724,7 +1725,7 @@ namespace PicoCalcNano
                 return true;
             }
 
-            _error = "Lecture du secteur " + sector + " : " + _card.ErrorMessage;
+            _error = "Read of sector " + sector + " : " + _card.ErrorMessage;
             return false;
         }
 
@@ -1735,7 +1736,7 @@ namespace PicoCalcNano
                 return true;
             }
 
-            _error = "Systeme de fichiers non monte (appeler Mount)";
+            _error = "File system not mounted (call Mount)";
             return false;
         }
 

@@ -6,7 +6,7 @@
     <title>PicoCalcNano.Keyboard</title>
     <authors>Stéphane Sibué</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-	<license type="expression">Apache-2.0</license>
+    <license type="expression">Apache-2.0</license>
     <readme>docs\README.md</readme>
     <developmentDependency>false</developmentDependency>
     <projectUrl>https://github.com/sydney680928/PicoCalcNanoFramework</projectUrl>
@@ -20,13 +20,13 @@
       <dependency id="nanoFramework.System.Device.I2c" version="1.1.29" />
     </dependencies>
   </metadata>
-<files>
-  <file src="bin\Release\PicoCalcNano.Keyboard.dll"  target="lib\PicoCalcNano.Keyboard.dll" />
-  <file src="bin\Release\PicoCalcNano.Keyboard.pdb"  target="lib\PicoCalcNano.Keyboard.pdb" />
-  <file src="bin\Release\PicoCalcNano.Keyboard.pdbx" target="lib\PicoCalcNano.Keyboard.pdbx" />
-  <file src="bin\Release\PicoCalcNano.Keyboard.pe"   target="lib\PicoCalcNano.Keyboard.pe" />
-  <file src="..\..\..\docs\keyboard.md"  target="docs\README.md" />
-  <file src="..\..\..\images\logo128.png" target="images\logo.png" />
-  <file src="..\..\..\LICENSE" target="LICENSE.md" />
-</files>
+  <files>
+    <file src="bin\Release\PicoCalcNano.Keyboard.dll"  target="lib\PicoCalcNano.Keyboard.dll" />
+    <file src="bin\Release\PicoCalcNano.Keyboard.pdb"  target="lib\PicoCalcNano.Keyboard.pdb" />
+    <file src="bin\Release\PicoCalcNano.Keyboard.pdbx" target="lib\PicoCalcNano.Keyboard.pdbx" />
+    <file src="bin\Release\PicoCalcNano.Keyboard.pe"   target="lib\PicoCalcNano.Keyboard.pe" />
+    <file src="..\..\..\docs\keyboard.md"  target="docs\README.md" />
+    <file src="..\..\..\images\logo128.png" target="images\logo.png" />
+    <file src="..\..\..\LICENSE" target="LICENSE.md" />
+  </files>
 </package>
