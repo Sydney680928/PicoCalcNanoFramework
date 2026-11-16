@@ -12,7 +12,7 @@ code, the character, and the modifier state.
 
 | | |
 |---|---|
-| Bus | I2C1: SDA = GP6, SCL = GP7, nanoFramework bus id `1` |
+| Bus | Second I2C controller: SDA = GP6, SCL = GP7. nanoFramework bus id `1` or `2` depending on the firmware (see below) |
 | Slave address | `0x1F` |
 | Protocol | write register `0x09`, read 2 bytes `[state, code]` |
 | `[0, 0]` | FIFO empty |
@@ -25,13 +25,22 @@ PicoCalc.
 The keyboard MCU also drives the screen backlight: `Alt + ,` and `Alt + .` change the brightness. This is
 handled by the MCU, not by this driver.
 
+## I2C bus id and firmware versions
+
+The numbering of the I2C buses of the Pico targets changed in the nanoFramework firmware (nf-interpreter pull
+request #3620): the same physical bus (GP6/GP7) is bus id `1` on older firmware and `2` on newer firmware.
+
+The default constructor handles both: it tries bus id 1, then 2, and keeps the first one where the keyboard
+answers. The id that was chosen is available in `BusId`. It was tested on both numberings. If you want to skip the
+detection, pass the id yourself: `new PicoCalcKeyboard(2, 0x1F)`.
+
 ## Quick start
 
 ```csharp
 using System.Threading;
 using PicoCalcNano;
 
-var keyboard = new PicoCalcKeyboard();      // I2C bus 1, address 0x1F
+var keyboard = new PicoCalcKeyboard();      // detects the I2C bus, address 0x1F
 keyboard.KeyDown += (sender, e) =>
 {
     if (e.HasChar)
@@ -54,8 +63,9 @@ Thread.Sleep(Timeout.Infinite);
 
 | Member | Description |
 |---|---|
-| `PicoCalcKeyboard()` | Bus id 1, address `0x1F` (the PicoCalc values) |
-| `PicoCalcKeyboard(int busId, int address)` | Other values, if your board differs |
+| `PicoCalcKeyboard()` | Detects the I2C bus (see below), address `0x1F`. Throws `InvalidOperationException` if no keyboard answers |
+| `PicoCalcKeyboard(int busId, int address)` | Forces the bus id and the address (pass `PicoCalcKeyboard.AutoDetect` as bus id to detect it) |
+| `BusId` | I2C bus id actually used (1 or 2) |
 | `event KeyDown` | Raised when a key is pressed, and again on every auto-repeat |
 | `event KeyUp` | Raised when a key is released |
 | `ShiftPressed`, `CtrlPressed`, `AltPressed` | Current state of the modifier keys |

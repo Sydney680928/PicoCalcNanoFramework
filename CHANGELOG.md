@@ -9,7 +9,9 @@ for now; when they start to diverge, the entries will say which package they con
 
 ### Added
 
-- `PicoCalcNano.Keyboard`: keyboard driver (key events with code, character and modifiers).
+- `PicoCalcNano.Keyboard`: keyboard driver (key events with code, character and modifiers). The I2C bus id is
+  detected automatically, so the driver works with both the older and the newer I2C numbering of the nanoFramework
+  firmware on the Pico targets (`BusId` tells which one was used).
 - `PicoCalcNano.Display`: 320x320 display driver, 40x20 text screen with hardware scrolling, in-memory canvas
   (RGB565) and an 8x16 font (GNU Unifont, U+0020 to U+00FF).
 - `PicoCalcNano.Console`: standalone console with line editing, history, key input and a graphics mode.

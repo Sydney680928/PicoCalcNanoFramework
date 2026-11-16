@@ -1,4 +1,4 @@
-using PicoCalc;
+using PicoCalcNano;
 using System;
 using System.Device.I2c;
 using System.Diagnostics;
@@ -13,6 +13,8 @@ namespace PicoCalcAnalyseKeyboard
             var kb = new PicoCalcKeyboard();
             kb.KeyDown += OnKeyDown;
             kb.Start();
+
+            Debug.WriteLine($"Bus={kb.BusId}");
 
             Thread.Sleep(Timeout.Infinite);
         }

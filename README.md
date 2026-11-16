@@ -1,5 +1,3 @@
-<img src="./images/img01.png" title="" alt="MOGWAI" data-align="center">
-
 # PicoCalc drivers for .NET nanoFramework
 
 C# drivers for the Clockwork **PicoCalc** (Raspberry Pi Pico or Pico 2 W in the socket) with
@@ -36,7 +34,7 @@ and the display. Each one can be packaged and used alone, which saves memory on 
 
 | Part | Pins | nanoFramework id |
 |---|---|---|
-| Keyboard (STM32, I2C address 0x1F) | SDA GP6, SCL GP7 | I2C bus 1 |
+| Keyboard (STM32, I2C address 0x1F) | SDA GP6, SCL GP7 | I2C bus 1 or 2 depending on the firmware (detected by the driver) |
 | Display | SCK GP10, MOSI GP11, CS GP13, DC GP14, RST GP15 | SPI bus **2** |
 | SD card | MISO GP16, CS GP17, SCK GP18, MOSI GP19 | SPI bus **1** |
 | Sound | GP26 left, GP27 right | PWM |

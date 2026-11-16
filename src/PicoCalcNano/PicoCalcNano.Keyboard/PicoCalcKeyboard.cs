@@ -178,7 +178,7 @@ namespace PicoCalcNano
         public bool AltPressed { get { return _alt; } }
 
         // Tries the candidate bus ids one after the other; an id that does not exist on this firmware
-        // throws, and an id that points to another controller gets no answer from the keyboard.
+        // may throw, and an id that points to another controller gets no answer from the keyboard.
         private static I2cDevice Detect(int address, out int busId)
         {
             for (int id = 1; id <= 2; id++)
@@ -189,11 +189,13 @@ namespace PicoCalcNano
                 {
                     device = I2cDevice.Create(new I2cConnectionSettings(id, address));
 
+                    // Sentinel values: a real answer overwrites them ([state, code], state is 0..3),
+                    // a failed transfer leaves them untouched.
                     byte[] reg = new byte[] { RegFifo };
-                    byte[] buf = new byte[2];
-                    I2cTransferResult result = device.WriteReadPartial(reg, buf);
+                    byte[] buf = new byte[] { 0xFF, 0xFF };
+                    device.WriteRead(reg, buf);
 
-                    if (result.Status == I2cTransferStatus.FullTransfer)
+                    if (buf[0] <= StateReleased)
                     {
                         busId = id;
                         return device;
