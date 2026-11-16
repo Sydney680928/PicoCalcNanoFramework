@@ -12,8 +12,8 @@ GNU Unifont is dual-licensed under the SIL Open Font License, Version 1.1 (SIL O
 License version 2 or later with the GNU Font Embedding Exception. This repository uses it under the terms of the
 **SIL Open Font License, Version 1.1**.
 
-The file `PicoCalcFont.cs` is therefore distributed under the SIL OFL 1.1 and not under the Apache License 2.0. The
-NuGet package `PicoCalcNano.Display`, which contains it, carries both licenses (`Apache-2.0 AND OFL-1.1`).
+The glyph data in `PicoCalcFont.cs` is therefore distributed under the SIL OFL 1.1; the rest of the file is under the
+Apache License 2.0. The NuGet package `PicoCalcNano.Display`, which contains it, carries both licenses (`Apache-2.0 AND OFL-1.1`).
 
 ### Copyright notice of GNU Unifont
 
