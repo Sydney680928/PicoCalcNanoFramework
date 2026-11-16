@@ -3,8 +3,9 @@
 # PicoCalc drivers for .NET nanoFramework
 
 C# drivers for the Clockwork **PicoCalc** (Raspberry Pi Pico or Pico 2 W in the socket) with
-[.NET nanoFramework](https://nanoframework.net/). Validated on a Raspberry Pi Pico (RP2040, `PICO_RP2040`
-firmware) and a Raspberry Pi Pico 2 W (RP2350, `PICO2_RP2350_W` firmware): same code on both.
+[.NET nanoFramework](https://nanoframework.net/). Developed and tested on a Raspberry Pi Pico 2 W (RP2350,
+`PICO2_RP2350_W` firmware); also validated on a Raspberry Pi Pico (RP2040, `PICO_RP2040` firmware) with an earlier
+firmware: same code on both.
 
 The drivers are published as NuGet packages named `PicoCalcNano.*` ("Nano" stands for nanoFramework). This is a
 community project: it is not affiliated with, or endorsed by, Clockwork.
@@ -17,7 +18,7 @@ community project: it is not affiliated with, or endorsed by, Clockwork.
 | `PicoCalcNano.Display` | 320x320 display: text screen, drawing, canvas, font | [docs/display.md](docs/display.md) | Done |
 | `PicoCalcNano.Console` | Console / REPL building block | [docs/console.md](docs/console.md) | Done. Needs Display + Keyboard |
 | `PicoCalcNano.SdCard` | SD card over SPI, FAT16/FAT32 read and write | [docs/sd.md](docs/sd.md) | Done. Writes are slow (optimisation planned) |
-| `PicoCalcNano.Sound` | Beeps, notes and melodies on the two speakers | [docs/sound.md](docs/sound.md) | Needs a firmware with the PWM fix, see below |
+| `PicoCalcNano.Sound` | Beeps, notes and melodies on the two speakers | [docs/sound.md](docs/sound.md) | Done. Needs CLR 1.18.0.96 or later, see Firmware |
 
 All packages are version `0.1.0`. A demo project that uses them is in the `samples` folder.
 
@@ -60,13 +61,15 @@ and the display. Each one can be packaged and used alone, which saves memory on 
 
 ## Firmware
 
-The drivers were tested on the `PICO_RP2040` and `PICO2_RP2350_W` nanoFramework firmware (the Pico 2 W one with CLR 1.18.0.84).
+Recommended firmware: **CLR 1.18.0.96 or later** (nanoFramework `PICO2_RP2350_W`, build of 16 November 2026). It
+contains the two nf-interpreter fixes these drivers benefit from. All the drivers were tested on it with a Pico 2 W
+in the PicoCalc. The Pico (RP2040) was not retested with this firmware release.
 
-- **Keyboard**: the numbering of the I2C buses of the Pico targets changed in recent firmware (nf-interpreter pull
-  request #3620). The driver detects the right bus by itself, so it works with both numberings.
-- **Sound**: with the firmware currently released the pitch does not follow the requested frequency (a PWM clock
-  divider bug on the Pico targets). It is fixed in nf-interpreter pull request #3623; the driver works as expected
-  with a firmware that contains it.
+- **Sound**: needs a firmware that contains pull request #3623 (PWM clock divider on the Pico targets), that is CLR
+  1.18.0.96 or later. With an older firmware the pitch does not follow the requested frequency.
+- **Keyboard**: the I2C buses of the Pico targets are numbered differently since pull request #3620 (the keyboard
+  is bus id 2 instead of 1). The driver detects the right bus by itself, so it works with both numberings.
+- **Display and SD card**: SPI bus ids are unchanged (display 2, SD card 1) and work on older and newer firmware.
 - **SD card**: the driver is written in C# and does not rely on the firmware's own file system support.
 
 ## Minimal use

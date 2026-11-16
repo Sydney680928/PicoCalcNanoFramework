@@ -2,13 +2,10 @@
 
 Beeps, notes and small melodies on the PicoCalc speakers, with a square wave produced by `PwmChannel`.
 
-> **Status: work in progress.** The API works and the speakers sound, but the **pitch does not follow the requested
-> frequency** (see [Known issue](#known-issue-the-pitch-does-not-follow-the-frequency)). An addendum will be added
-> once this is understood.
-
 - Source file: `PicoCalcSound.cs`
 - NuGet package: `nanoFramework.System.Device.Pwm`
 - Independent of the other drivers
+- Firmware: needs CLR **1.18.0.96 or later** (see [Firmware](#firmware))
 
 ## Hardware
 
@@ -68,29 +65,15 @@ Example: `"F#3:300 Bb4:150 R:100"`.
 - **Blocking:** `Tone` and `Play` block the calling thread. Use `PlayAsync` to play while the program does
   something else.
 
-## Known issue: the pitch does not follow the frequency
+## Firmware
 
-Notes are produced and are audible, but most of them sound at **about the same pitch**. Measurements made with a
-spectrum analyser on a phone, 4 s per note:
+The PWM clock divider of the Pico targets was wrong in older nanoFramework firmware, so the pitch did not follow the
+requested frequency (nf-interpreter pull request #3623). The fix is in **CLR 1.18.0.96 or later**; this driver
+needs it.
 
-| Requested | Measured |
-|---|---|
-| 100 Hz, 200 Hz, 400 Hz | about 2000 Hz |
-| 800 Hz | about 1800 Hz |
-| 1600 Hz, 3200 Hz | about 6000 Hz |
-| 6400 Hz and above | very high, with a pop |
+Measured with a spectrum analyser on a Pico 2 W (`PICO2_RP2350_W`) with a firmware containing the fix: 100, 200,
+400, 800, 1600, 3200, 6400 and 7500 Hz all come out at the requested frequency. 12 800 Hz is not audible on the
+PicoCalc speaker, which is too small for it. Melodies are in tune, and the speakers are best in octaves 4 to 6.
 
-What has been ruled out: a gap between notes, the `Frequency` setter, and the use of two channels. The current
-hypothesis is a limit in how the firmware computes the PWM period on the RP2040/RP2350 (a 16-bit counter wrap, which
-would give a lowest usable frequency of about 1.9 kHz when no clock divider is applied), but it is **not
-confirmed**. The same idea written in MOGWAI NANO for ESP32 (`pwm.open` with a frequency, then `pwm.start`) works
-there, so the wiring and the principle are right.
-
-A question has been posted to the nanoFramework team on Discord. This document will get an addendum with the answer,
-and the driver will be adapted accordingly.
-
-### Practical consequence for now
-
-- Use sound for **signals** (beep, error, end of task), not for melodies that must be in tune.
-- If you need to experiment, the test program `ProgramSoundTest.cs` plays 100 Hz to 12 800 Hz, 4 s per note, so
-  that the pitch can be measured with an analyser.
+To check your own board, the test program `ProgramSoundTest.cs` plays 100 Hz to 12 800 Hz, 4 s per note, so that the
+pitch can be measured with an analyser.

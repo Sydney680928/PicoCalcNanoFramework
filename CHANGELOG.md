@@ -17,12 +17,11 @@ for now; when they start to diverge, the entries will say which package they con
 - `PicoCalcNano.Console`: standalone console with line editing, history, key input and a graphics mode.
 - `PicoCalcNano.SdCard`: SD card driver over SPI, with a FAT16 / FAT32 file system (list, read, write, delete,
   rename, create and remove folders). Pure C#, no native firmware support needed.
-- `PicoCalcNano.Sound`: beeps, notes and melodies on the left and right speakers.
+- `PicoCalcNano.Sound`: beeps, notes and melodies on the left and right speakers. Needs nanoFramework firmware
+  CLR 1.18.0.96 or later (PWM clock divider fix, nf-interpreter #3623).
 
 ### Known issues
 
-- Sound: the pitch does not follow the requested frequency on the current firmware. A fix is being worked on in the
-  nanoFramework firmware (PWM clock divider on the Pico targets).
 - SD card: writes are slow (a few KB/s) and exFAT is not supported.
 
 [Unreleased]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/HEAD

@@ -28,7 +28,7 @@ handled by the MCU, not by this driver.
 ## I2C bus id and firmware versions
 
 The numbering of the I2C buses of the Pico targets changed in the nanoFramework firmware (nf-interpreter pull
-request #3620): the same physical bus (GP6/GP7) is bus id `1` on older firmware and `2` on newer firmware.
+request #3620): the same physical bus (GP6/GP7) is bus id `1` on older firmware and `2` on newer firmware (CLR 1.18.0.96 and later).
 
 The default constructor handles both: it tries bus id 1, then 2, and keeps the first one where the keyboard
 answers. The id that was chosen is available in `BusId`. It was tested on both numberings. If you want to skip the

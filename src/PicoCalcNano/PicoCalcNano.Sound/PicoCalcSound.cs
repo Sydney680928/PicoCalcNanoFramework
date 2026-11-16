@@ -61,8 +61,8 @@ namespace PicoCalcNano
         public double Volume = 0.6;
 
         /// <summary>Speaker(s) used by Beep, Tone and Play. Default: left only. Left, Right and Both all
-        /// work (GP26 and GP27 are the two outputs of the same PWM slice). Known issue: the pitch does
-        /// not follow the requested frequency, see docs/sound.md.</summary>
+        /// work (GP26 and GP27 are the two outputs of the same PWM slice). Needs a firmware with the PWM
+        /// clock divider fix (CLR 1.18.0.96 or later), see docs/sound.md.</summary>
         public PicoCalcSpeaker Speaker = PicoCalcSpeaker.Left;
 
         /// <summary>Pause in milliseconds added after each note, so repeated notes stay distinct.</summary>
