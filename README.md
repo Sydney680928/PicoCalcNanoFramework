@@ -4,7 +4,7 @@
 
 C# drivers for the Clockwork **PicoCalc** (Raspberry Pi Pico or Pico 2 W in the socket) with
 [.NET nanoFramework](https://nanoframework.net/). Validated on a Raspberry Pi Pico (RP2040, `PICO_RP2040`
-firmware) and a Raspberry Pi Pico 2 W (RP2350, `PICO2_RP2350_W` firmware): same code, same bus ids.
+firmware) and a Raspberry Pi Pico 2 W (RP2350, `PICO2_RP2350_W` firmware): same code on both.
 
 ## Drivers
 
