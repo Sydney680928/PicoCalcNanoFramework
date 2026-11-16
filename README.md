@@ -6,18 +6,32 @@ C# drivers for the Clockwork **PicoCalc** (Raspberry Pi Pico or Pico 2 W in the 
 [.NET nanoFramework](https://nanoframework.net/). Validated on a Raspberry Pi Pico (RP2040, `PICO_RP2040`
 firmware) and a Raspberry Pi Pico 2 W (RP2350, `PICO2_RP2350_W` firmware): same code on both.
 
+The drivers are published as NuGet packages named `PicoCalcNano.*` ("Nano" stands for nanoFramework). This is a
+community project: it is not affiliated with, or endorsed by, Clockwork.
+
 ## Drivers
 
-| Driver | Source files | Documentation | Status |
+| NuGet package | What it does | Documentation | Status |
 |---|---|---|---|
-| Keyboard | `PicoCalcKeyboard.cs` | [docs/keyboard.md](docs/keyboard.md) | Done |
-| Display (text screen, drawing, canvas) | `PicoCalcDisplay.cs`, `PicoCalcTextScreen.cs`, `PicoCalcCanvas.cs`, `PicoCalcFont.cs` | [docs/display.md](docs/display.md) | Done |
-| Console (REPL building block) | `PicoCalcConsole.cs` | [docs/console.md](docs/console.md) | Done. Needs Display + Keyboard |
-| SD card (SPI, FAT16/FAT32 read and write) | `PicoCalcSdCard.cs`, `PicoCalcFat.cs` | [docs/sd.md](docs/sd.md) | Done. Writes are slow (optimisation planned) |
-| Sound | `PicoCalcSound.cs` | [docs/sound.md](docs/sound.md) | Works, but the pitch does not follow the frequency (under investigation) |
+| `PicoCalcNano.Keyboard` | Keyboard (key events with code, character and modifiers) | [docs/keyboard.md](docs/keyboard.md) | Done |
+| `PicoCalcNano.Display` | 320x320 display: text screen, drawing, canvas, font | [docs/display.md](docs/display.md) | Done |
+| `PicoCalcNano.Console` | Console / REPL building block | [docs/console.md](docs/console.md) | Done. Needs Display + Keyboard |
+| `PicoCalcNano.SdCard` | SD card over SPI, FAT16/FAT32 read and write | [docs/sd.md](docs/sd.md) | Done. Writes are slow (optimisation planned) |
+| `PicoCalcNano.Sound` | Beeps, notes and melodies on the two speakers | [docs/sound.md](docs/sound.md) | Needs a firmware with the PWM fix, see below |
 
-`Program.cs` is a demo: a small console REPL (`help`, `echo`, `calc`, `lines`, `graph`, `clear`, `bye`).
-The `tests/` folder holds the test programs used to validate each driver.
+All packages are version `0.1.0`. A demo project that uses them is in the `samples` folder.
+
+## Install
+
+In Visual Studio, open **Manage NuGet Packages** on your nanoFramework project, search for `PicoCalcNano` and
+install the drivers you need, or use the Package Manager Console:
+
+```
+Install-Package PicoCalcNano.Keyboard
+Install-Package PicoCalcNano.Display
+```
+
+NuGet also installs the nanoFramework packages that each driver depends on.
 
 ## Dependencies
 
@@ -44,9 +58,22 @@ and the display. Each one can be packaged and used alone, which saves memory on 
 `SpiDevice.Create` ids are **1-based** on RP2040/RP2350 (1 = SPI0, 2 = SPI1) while `SpiDevice.GetBusInfo` is
 0-based: this was reported to the nanoFramework team.
 
+## Firmware
+
+The drivers were tested on the `PICO_RP2040` and `PICO2_RP2350_W` nanoFramework firmware (the Pico 2 W one with CLR 1.18.0.84).
+
+- **Keyboard**: the numbering of the I2C buses of the Pico targets changed in recent firmware (nf-interpreter pull
+  request #3620). The driver detects the right bus by itself, so it works with both numberings.
+- **Sound**: with the firmware currently released the pitch does not follow the requested frequency (a PWM clock
+  divider bug on the Pico targets). It is fixed in nf-interpreter pull request #3623; the driver works as expected
+  with a firmware that contains it.
+- **SD card**: the driver is written in C# and does not rely on the firmware's own file system support.
+
 ## Minimal use
 
 ```csharp
+using PicoCalcNano;
+
 var console = new PicoCalcConsole();     // display + keyboard
 console.Start();
 console.WriteLine("Hello PicoCalc");
