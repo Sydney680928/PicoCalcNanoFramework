@@ -1,4 +1,4 @@
-// Copyright 2026 Stéphane Sibué
+// Copyright 2026 Stï¿½phane Sibuï¿½
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,8 @@
 // PicoCalc keyboard driver for .NET nanoFramework (RP2040 / RP2350)
 //
 // Hardware: the keyboard is scanned by an STM32 co-processor that exposes a
-// small FIFO over I2C (bus I2C1: SDA = GP6, SCL = GP7, slave address 0x1F).
+// small FIFO over I2C (second I2C controller of the RP2040/RP2350: SDA = GP6, SCL = GP7,
+// slave address 0x1F).
 // Reading register 0x09 returns 2 bytes: [state, code]. [0, 0] = FIFO empty.
 //
 //   state 1 = pressed (repeated while the key is held = auto-repeat)
@@ -26,7 +27,12 @@
 // The STM32 already applies Shift and Caps Lock to printable keys ('a' -> 'A',
 // '1' -> '!'), but NOT Ctrl, which this driver handles itself.
 //
-// NuGet packages needed: nanoFramework.System.Device.I2c, nanoFramework.System.Threading
+// I2C bus id: the nanoFramework firmware numbering of the I2C buses changed on the Pico targets
+// (older firmware: this keyboard is on bus 1; newer firmware: bus 2). The default constructor
+// tries both and keeps the one where the keyboard answers (see BusId). To force a bus, use
+// new PicoCalcKeyboard(busId, 0x1F).
+//
+// NuGet packages needed: nanoFramework.System.Device.I2c
 //
 // Usage:
 //     var kb = new PicoCalcKeyboard();
@@ -124,7 +130,11 @@ namespace PicoCalcNano
         private const byte StateHold = 2;
         private const byte StateReleased = 3;
 
+        /// <summary>Pass this bus id to let the driver detect the bus (default constructor).</summary>
+        public const int AutoDetect = -1;
+
         private readonly I2cDevice _i2c;
+        private readonly int _busId;
         private readonly bool[] _isDown = new bool[256];
 
         private Thread _thread;
@@ -140,18 +150,74 @@ namespace PicoCalcNano
         /// <summary>Raised from the polling thread when a key is released.</summary>
         public event PicoCalcKeyEventHandler KeyUp;
 
-        public PicoCalcKeyboard() : this(1, 0x1F)
+        /// <summary>Creates the driver and detects the I2C bus (tries 1 then 2) where the keyboard answers.</summary>
+        /// <exception cref="InvalidOperationException">No keyboard answered on any bus.</exception>
+        public PicoCalcKeyboard() : this(AutoDetect, 0x1F)
         {
         }
 
+        /// <summary>Creates the driver on a given I2C bus id (or AutoDetect) and slave address.</summary>
         public PicoCalcKeyboard(int busId, int address)
         {
-            _i2c = I2cDevice.Create(new I2cConnectionSettings(busId, address));
+            if (busId == AutoDetect)
+            {
+                _i2c = Detect(address, out _busId);
+            }
+            else
+            {
+                _i2c = I2cDevice.Create(new I2cConnectionSettings(busId, address));
+                _busId = busId;
+            }
         }
+
+        /// <summary>I2C bus id actually used (useful when detection is on).</summary>
+        public int BusId { get { return _busId; } }
 
         public bool ShiftPressed { get { return _shift; } }
         public bool CtrlPressed { get { return _ctrl; } }
         public bool AltPressed { get { return _alt; } }
+
+        // Tries the candidate bus ids one after the other; an id that does not exist on this firmware
+        // throws, and an id that points to another controller gets no answer from the keyboard.
+        private static I2cDevice Detect(int address, out int busId)
+        {
+            for (int id = 1; id <= 2; id++)
+            {
+                I2cDevice device = null;
+
+                try
+                {
+                    device = I2cDevice.Create(new I2cConnectionSettings(id, address));
+
+                    byte[] reg = new byte[] { RegFifo };
+                    byte[] buf = new byte[2];
+                    I2cTransferResult result = device.WriteReadPartial(reg, buf);
+
+                    if (result.Status == I2cTransferStatus.FullTransfer)
+                    {
+                        busId = id;
+                        return device;
+                    }
+                }
+                catch
+                {
+                    // Invalid id on this firmware, or transfer error: try the next one
+                }
+
+                if (device != null)
+                {
+                    try
+                    {
+                        device.Dispose();
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+
+            throw new InvalidOperationException("PicoCalc keyboard not found on I2C bus 1 or 2. Check the firmware version, or pass the bus id to the constructor.");
+        }
 
         public void Start()
         {

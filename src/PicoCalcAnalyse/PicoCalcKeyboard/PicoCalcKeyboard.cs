@@ -126,7 +126,7 @@ namespace PicoCalc
         /// <summary>Raised from the polling thread when a key is released.</summary>
         public event PicoCalcKeyEventHandler KeyUp;
 
-        public PicoCalcKeyboard() : this(1, 0x1F)
+        public PicoCalcKeyboard() : this(2, 0x1F)
         {
         }
 
