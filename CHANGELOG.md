@@ -7,6 +7,10 @@ for now; when they start to diverge, the entries will say which package they con
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-17
+
+First release. The five packages are published together on nuget.org in version 0.1.0.
+
 ### Added
 
 - `PicoCalcNano.Keyboard`: keyboard driver (key events with code, character and modifiers). The I2C bus id is
@@ -23,5 +27,8 @@ for now; when they start to diverge, the entries will say which package they con
 ### Known issues
 
 - SD card: writes are slow (a few KB/s) and exFAT is not supported.
+- Console: `PicoCalcConsole` creates and owns its own display and keyboard. Do not create a `PicoCalcDisplay` or a
+  `PicoCalcKeyboard` in the same program (the pins are already open); use `console.Display` instead.
 
-[Unreleased]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/HEAD
+[Unreleased]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/sydney680928/PicoCalcNanoFramework/releases/tag/v0.1.0
