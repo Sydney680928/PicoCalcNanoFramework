@@ -7,6 +7,8 @@ code, the character, and the modifier state.
 - Source file: `PicoCalcKeyboard.cs` (also contains `PicoCalcKeys`, `PicoCalcKeyEventArgs`, the event delegate)
 - NuGet packages: `nanoFramework.System.Device.I2c`
 - Needs nothing else: this driver is independent of the display, the console and the other drivers
+- Do not create a `PicoCalcKeyboard` in a program that also uses [`PicoCalcConsole`](console.md): the console has its
+  own keyboard and the two would compete for the same I2C device. `Dispose()` releases it.
 
 ## Hardware
 
@@ -28,7 +30,7 @@ handled by the MCU, not by this driver.
 ## I2C bus id and firmware versions
 
 The numbering of the I2C buses of the Pico targets changed in the nanoFramework firmware (nf-interpreter pull
-request #3620): the same physical bus (GP6/GP7) is bus id `1` on older firmware and `2` on newer firmware (CLR 1.18.0.96 and later).
+request #3620): the same physical bus (GP6/GP7) is bus id `1` on older firmware and `2` on newer firmware.
 
 The default constructor handles both: it tries bus id 1, then 2, and keeps the first one where the keyboard
 answers. The id that was chosen is available in `BusId`. It was tested on both numberings. If you want to skip the

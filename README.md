@@ -47,6 +47,12 @@ NuGet also installs the nanoFramework packages that each driver depends on.
 (Names are `nanoFramework.System.Device.*`.) The drivers are independent, except the console that uses the keyboard
 and the display. Each one can be packaged and used alone, which saves memory on the Pico.
 
+**One owner per pin.** `PicoCalcConsole` creates and owns its own display and keyboard. Do not create a
+`PicoCalcDisplay` or a `PicoCalcKeyboard` yourself in a program that uses the console (use `console.Display` to draw):
+the display pins (GP13 to GP15) would already be open and the program would fail with an `InvalidOperationException`
+at startup. When you use the drivers separately, call `Dispose()` on one before creating another that uses the same
+pins.
+
 ## Pins and buses at a glance
 
 | Part | Pins | nanoFramework id |
@@ -93,6 +99,8 @@ The SD card and the sound are used on their own, see their docs.
 3. Do not install batteries while the Pico is powered over USB (back-feeding risk).
 4. nanoFramework strings are UTF-8 internally: indexing and `Length` are O(n). Use `ToCharArray()` for large texts.
 5. The PicoCalc backlight is controlled by the keyboard MCU: `Alt + ,` and `Alt + .` change the brightness.
+6. A pin, a bus or a device can only be opened once. If you get an `InvalidOperationException` when a driver starts,
+   check that nothing else in your program (or an earlier object that was not disposed) uses the same pins.
 
 ## Licenses
 

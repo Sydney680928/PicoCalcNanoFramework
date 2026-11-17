@@ -9,6 +9,12 @@ separate piece so that other projects can use it as well.
   [keyboard](keyboard.md) (`PicoCalcKeyboard`) drivers: add their source files, or their packages
 - NuGet packages: the ones of those two drivers (Gpio, Spi, I2c, plus Collections for the key queue)
 
+> **The console owns the display and the keyboard.** `PicoCalcConsole` creates its own `PicoCalcDisplay` and
+> `PicoCalcKeyboard`. Do **not** create either of them in the same program: the pins are already open and the console
+> constructor throws an `InvalidOperationException` (`GpioController.InternalOpenPin`). To draw, use the console's
+> `Display` property. If you need a display or a keyboard on its own, `Dispose()` it before creating the console (and
+> create a new one after `console.Dispose()`).
+
 The screen is refreshed by an internal thread (every 20 ms; the cursor blinks every 500 ms): you do **not** call
 `Flush()` and you do not need any lock. `Write` and `WriteLine` can be called from any thread.
 `ReadLine` and `ReadKey` block the calling thread.
@@ -123,4 +129,6 @@ shown until a key is pressed).
 - **Memory:** the text grid and the font use only a few KB. A `PicoCalcCanvas` used in graphics mode adds its own
   `width × height × 2` bytes.
 - **Font:** characters from U+0020 to U+00FF are drawn (accents included). Other characters are not available.
+- **One owner per pin:** the console and a separate `PicoCalcDisplay` or `PicoCalcKeyboard` cannot live together in
+  one program, see the note at the top. The same goes for two consoles.
 - **Screen between runs:** the panel keeps its content while powered; `Start()` clears it.

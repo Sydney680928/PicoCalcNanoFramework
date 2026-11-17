@@ -14,6 +14,10 @@ The font (`PicoCalcFont`) is an 8 × 16 table (GNU Unifont, U+0020 to U+00FF, ac
 
 If you only want a text console with a keyboard, use [`PicoCalcConsole`](console.md) instead: it drives these classes for you.
 
+> **One display at a time.** The display pins (GP10, GP11, GP13, GP14, GP15) can only be opened once. Do not create a
+> `PicoCalcDisplay` in a program that also creates a `PicoCalcConsole` (the console has its own, available as
+> `console.Display`): the second one fails with an `InvalidOperationException`. `Dispose()` releases the pins.
+
 ## Hardware
 
 | Signal | Pin |
