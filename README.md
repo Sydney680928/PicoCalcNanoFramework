@@ -76,7 +76,9 @@ in the PicoCalc. The Pico (RP2040) was not retested with this firmware release.
 - **Keyboard**: the I2C buses of the Pico targets are numbered differently since pull request #3620 (the keyboard
   is bus id 2 instead of 1). The driver detects the right bus by itself, so it works with both numberings.
 - **Display and SD card**: SPI bus ids are unchanged (display 2, SD card 1) and work on older and newer firmware.
-- **SD card**: the driver is written in C# and does not rely on the firmware's own file system support.
+- **SD card**: the driver is written in C# and does not rely on the firmware's own file system support. The native
+  `SDCard` class of `nanoFramework.System.IO.FileSystem` is not implemented yet on the Pico targets (`SDCard`
+  throws `NotImplementedException` from `InitNative`, tested on CLR 1.18.0.96).
 
 ## Minimal use
 
