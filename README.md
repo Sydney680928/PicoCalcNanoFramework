@@ -12,15 +12,16 @@ community project: it is not affiliated with, or endorsed by, Clockwork.
 
 ## Drivers
 
-| NuGet package | What it does | Documentation | Status |
-|---|---|---|---|
-| `PicoCalcNano.Keyboard` | Keyboard (key events with code, character and modifiers) | [docs/keyboard.md](docs/keyboard.md) | Done |
-| `PicoCalcNano.Display` | 320x320 display: text screen, drawing, canvas, font | [docs/display.md](docs/display.md) | Done |
-| `PicoCalcNano.Console` | Console / REPL building block | [docs/console.md](docs/console.md) | Done. Needs Display + Keyboard |
-| `PicoCalcNano.SdCard` | SD card over SPI, FAT16/FAT32 read and write | [docs/sd.md](docs/sd.md) | Done. Writes are slow (optimisation planned) |
-| `PicoCalcNano.Sound` | Beeps, notes and melodies on the two speakers | [docs/sound.md](docs/sound.md) | Done. Needs CLR 1.18.0.96 or later, see Firmware |
+| NuGet package | Version | What it does | Documentation | Status |
+|---|---|---|---|---|
+| `PicoCalcNano.Keyboard` | 0.1.0 | Keyboard (key events with code, character and modifiers) | [docs/keyboard.md](docs/keyboard.md) | Done |
+| `PicoCalcNano.Display` | 0.2.0 | 320x320 display: text screen, drawing, canvas, font | [docs/display.md](docs/display.md) | Done |
+| `PicoCalcNano.Console` | 0.2.0 | Console / REPL building block | [docs/console.md](docs/console.md) | Done. Needs Display 0.2 + Keyboard |
+| `PicoCalcNano.SdCard` | 0.1.0 | SD card over SPI, FAT16/FAT32 read and write | [docs/sd.md](docs/sd.md) | Done. Writes are slow (optimisation planned) |
+| `PicoCalcNano.Sound` | 0.2.0 | Beeps, notes, melodies and sound effects on the two speakers | [docs/sound.md](docs/sound.md) | Done. Needs CLR 1.18.0.96 or later, see Firmware |
 
-All packages are version `0.1.0`. A demo project that uses them is in the `samples` folder.
+The packages are versioned independently; the repository release tag (`v0.2.0`) is the highest package version. See
+[CHANGELOG.md](CHANGELOG.md). A demo project that uses them is in the `samples` folder.
 
 ## Install
 

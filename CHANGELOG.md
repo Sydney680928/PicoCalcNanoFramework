@@ -2,13 +2,26 @@
 
 All notable changes to this repository are documented in this file.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The packages are versioned together
-for now; when they start to diverge, the entries will say which package they concern.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The packages are versioned
+independently; the repository tag is the highest package version, and the entries say which package they concern.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-19
+
+Packages in this release: `PicoCalcNano.Display` 0.2.0, `PicoCalcNano.Console` 0.2.0 and `PicoCalcNano.Sound` 0.2.0.
+`PicoCalcNano.Keyboard` and `PicoCalcNano.SdCard` are unchanged and stay in 0.1.0.
+
 ### Added
 
+- `PicoCalcNano.Sound`: sound effects. `Sweep(fromHz, toHz, ms [, fadeOut])` (glide between two frequencies) and
+  `Noise(minHz, maxHz, ms [, fadeOut])` (pseudo-noise), with the `StepMs` property (step duration, default 5 ms).
+  The effects follow the real elapsed time, so the requested duration is respected.
+- `PicoCalcNano.Sound`: effects in the melody string, mixed with the notes: `S:2400>300:130` (sweep), `SF:` (sweep
+  with fade-out), `N:100-3000:400` (noise) and `NF:` (noise with fade-out).
+- `PicoCalcNano.Sound`: `PicoCalcEffect` (`Laser`, `Jump`, `Coin`, `Siren`, `Explosion`, `Wind`, `Fall`, `Tick`) with
+  `PlayEffect()`, `PlayEffectAsync()` and `EffectMelody()`, which returns the melody string of an effect.
+- Demo: sound effects (key 5) and a notes + effects jingle (key 6) in the sound demo.
 - `PicoCalcNano.Console`: `Busy` property. When true, the cursor is a blinking hourglass instead of the block, to show
   that a program is running; when false, the usual block (waiting for input).
 - `PicoCalcNano.Display`: `PicoCalcTextScreen.CursorGlyph`, a custom shape for the text cursor (16 bytes, 8x16). The
@@ -23,6 +36,8 @@ for now; when they start to diverge, the entries will say which package they con
 
 ### Changed
 
+- `PicoCalcNano.Sound`: `Tone` is now built on an internal method that does not touch `Volume` or `NoteGap`; its
+  behaviour is unchanged.
 - README: the native `SDCard` class of `nanoFramework.System.IO.FileSystem` is not implemented on the Pico targets,
   which is why the SD card driver is written in C#.
 
@@ -49,5 +64,6 @@ First release. The five packages are published together on nuget.org in version 
 - Console: `PicoCalcConsole` creates and owns its own display and keyboard. Do not create a `PicoCalcDisplay` or a
   `PicoCalcKeyboard` in the same program (the pins are already open); use `console.Display` instead.
 
-[Unreleased]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sydney680928/PicoCalcNanoFramework/releases/tag/v0.1.0

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Sound demo (package PicoCalcNano.Sound): a beep, a scale and a melody on the left, right or both speakers.
+// Sound demo (package PicoCalcNano.Sound): a beep, a scale, a melody and sound effects on the left, right or both speakers.
 // Needs a firmware CLR 1.18.0.96 or later, otherwise the notes are not at the right pitch.
 
 using System.Threading;
@@ -31,6 +31,9 @@ namespace PicoCalcDemo
             "D5:300 D5:300 D5:300 D5:300 A4:600 A4:600 D5:300 C5:300 B4:300 A4:300 G4:1200 R:300 " +
             "C5:300 C5:300 C5:300 D5:300 E5:600 D5:600 C5:300 E5:300 D5:300 D5:300 C5:1200";
 
+        // Notes and effects mixed in one melody string (S = sweep, NF = noise with fade-out)
+        private const string Jingle = "G4:120 C5:120 E5:120 G5:120 S:600>2400:250 R:100 C6:200 NF:100-3000:500";
+
         public static void Run()
         {
             Ui ui = new Ui();
@@ -44,6 +47,8 @@ namespace PicoCalcDemo
                 ui.PrintLine("2  Scale");
                 ui.PrintLine("3  Au clair de la lune");
                 ui.PrintLine("4  Change speaker");
+                ui.PrintLine("5  Sound effects");
+                ui.PrintLine("6  Notes + effects jingle");
                 ui.PrintLine("Esc  Back to the menu");
                 ui.PrintLine("");
                 ui.PrintLine("Speaker: " + SpeakerName(sound.Speaker));
@@ -90,6 +95,14 @@ namespace PicoCalcDemo
 
                         ui.PrintLine("Speaker: " + SpeakerName(sound.Speaker));
                     }
+                    else if (e.Char == '5')
+                    {
+                        PlayEffects(ui, sound);
+                    }
+                    else if (e.Char == '6')
+                    {
+                        PlayAndWait(ui, sound, Jingle);
+                    }
                 }
             }
             finally
@@ -113,6 +126,38 @@ namespace PicoCalcDemo
             if (sound.IsPlaying)
             {
                 sound.Stop();
+            }
+        }
+
+        // Plays every ready-made effect in turn, with its name; a key press stops the sequence
+        private static void PlayEffects(Ui ui, PicoCalcSound sound)
+        {
+            PicoCalcEffect[] effects = new PicoCalcEffect[]
+            {
+                PicoCalcEffect.Laser, PicoCalcEffect.Jump, PicoCalcEffect.Coin, PicoCalcEffect.Siren,
+                PicoCalcEffect.Explosion, PicoCalcEffect.Wind, PicoCalcEffect.Fall, PicoCalcEffect.Tick
+            };
+
+            // Names written by hand: Enum.ToString() is not reliable on nanoFramework
+            string[] names = new string[]
+            {
+                "Laser", "Jump", "Coin", "Siren", "Explosion", "Wind", "Fall", "Tick"
+            };
+
+            ui.ClearKeys();
+
+            for (int i = 0; i < effects.Length; i++)
+            {
+                ui.PrintLine(names[i]);
+                PlayAndWait(ui, sound, PicoCalcSound.EffectMelody(effects[i]));
+
+                if (ui.KeyAvailable)
+                {
+                    ui.ClearKeys();
+                    return;
+                }
+
+                Thread.Sleep(400);
             }
         }
 

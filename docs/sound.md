@@ -1,6 +1,7 @@
 # Sound (`PicoCalcSound`)
 
-Beeps, notes and small melodies on the PicoCalc speakers, with a square wave produced by `PwmChannel`.
+Beeps, notes, small melodies and sound effects (lasers, explosions, sirens...) on the PicoCalc speakers, with a square
+wave produced by `PwmChannel`.
 
 - Source file: `PicoCalcSound.cs`
 - NuGet package: `nanoFramework.System.Device.Pwm`
@@ -26,6 +27,9 @@ sound.Beep();                                      // short beep
 sound.Tone(440, 500);                              // A4 for 500 ms (blocks)
 sound.Play("C4:250 E4:250 G4:500 R:250 C5:500");   // melody (blocks)
 sound.PlayAsync("C4:250 D4:250 E4:250");           // background; sound.Stop() cancels
+sound.PlayEffect(PicoCalcEffect.Laser);            // ready-made sound effect (0.2)
+sound.Sweep(2400, 300, 130);                       // glide from 2400 Hz to 300 Hz in 130 ms
+sound.Noise(60, 600, 900, true);                   // noise, fading out: an explosion
 ```
 
 ## API
@@ -35,8 +39,14 @@ sound.PlayAsync("C4:250 D4:250 E4:250");           // background; sound.Stop() c
 | `Volume` | 0.0 (silent) to 1.0. Default 0.6. Implemented as the PWM duty cycle (`Volume × 0.5`; a square wave is loudest at 50 %) |
 | `Speaker` | `PicoCalcSpeaker.Left` (default), `Right` or `Both` |
 | `NoteGap` | Silence after each note in ms (default 15), so that repeated notes stay distinct |
+| `StepMs` | Duration of one step of `Sweep` and `Noise` in ms (default 5, minimum 2) |
 | `Beep()` | 1000 Hz for 120 ms |
 | `Tone(int frequency, int milliseconds)` | One note, blocks until finished. A frequency of 0 or less is a rest |
+| `Sweep(int fromHz, int toHz, int milliseconds [, bool fadeOut])` | Glide between two frequencies; with `fadeOut` the volume also goes down to 0. Blocks |
+| `Noise(int minHz, int maxHz, int milliseconds [, bool fadeOut])` | Pseudo-noise: random frequencies between `minHz` and `maxHz`. Blocks |
+| `PlayEffect(PicoCalcEffect effect)` | Plays a ready-made effect, blocks |
+| `PlayEffectAsync(PicoCalcEffect effect)` | Plays a ready-made effect in the background |
+| `static EffectMelody(PicoCalcEffect effect)` | The melody string of an effect, to mix with notes |
 | `Play(string melody)` | Plays a melody, blocks until it ends or `Stop()` is called |
 | `PlayAsync(string melody)` | Plays in a background thread and returns immediately (stops any previous melody first) |
 | `Stop()` | Stops the melody at the end of the current note and waits for the thread |
@@ -55,12 +65,44 @@ Space-separated tokens `NOTE:milliseconds`.
 
 Example: `"F#3:300 Bb4:150 R:100"`.
 
+Since 0.2, **effects** can be mixed with the notes (a token with three parts separated by `:` is an effect):
+
+| Token | Effect |
+|---|---|
+| `S:2400>300:130` | Sweep: glide from 2400 Hz to 300 Hz in 130 ms |
+| `SF:1500>100:600` | Sweep whose volume also fades out |
+| `N:100-3000:400` | Noise: random frequencies between 100 and 3000 Hz for 400 ms |
+| `NF:60-600:900` | Noise whose volume fades out |
+
+Example: `"G4:120 C5:120 E5:120 S:600>2400:250 R:100 NF:100-3000:500"`.
+
+## Sound effects (0.2)
+
+`PicoCalcEffect` has eight ready-made effects, each one a melody string (see `EffectMelody`):
+
+| Effect | Melody string |
+|---|---|
+| `Laser` | `S:2400>300:130` |
+| `Jump` | `S:300>1200:130` |
+| `Coin` | `B5:70 E6:250` |
+| `Siren` | `S:500>1200:140 S:1200>500:140` three times |
+| `Explosion` | `NF:60-600:900` |
+| `Wind` | `NF:800-4000:1000` |
+| `Fall` | `SF:1500>100:600` |
+| `Tick` | `A6:8 R:90` six times |
+
+A sweep or a noise is a succession of very short notes (`StepMs`, 5 ms by default). The frequency follows the **real
+elapsed time**, so the requested duration is respected whatever the cost of a step. The effects are pure square
+waves: they sound like an 8-bit console, not like samples.
+
 ## How it works, and what was learned on the hardware
 
 - **One new `PwmChannel` per note.** Changing the `Frequency` of a running channel produces **no sound**, so each
   note creates a channel (`CreateFromPin(pin, frequency, duty)`), starts it, waits, stops it and disposes it.
 - **Left, right and both speakers work.** With `Both`, two channels are created on GP26 and GP27 at the same
   frequency.
+- **A step costs about 1.7 ms** (measured with `Tone(f, 1)`: creating, starting and disposing the channel). That is why
+  `StepMs` defaults to 5 ms and cannot go below 2 ms.
 - **The speakers are weak and small:** very low notes are barely audible. Test with a melody in octaves 4 to 6.
 - **Blocking:** `Tone` and `Play` block the calling thread. Use `PlayAsync` to play while the program does
   something else.
