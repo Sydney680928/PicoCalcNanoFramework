@@ -25,6 +25,7 @@
 //
 // The screen is refreshed by an internal thread; callers do not need to Flush or lock.
 // Write/WriteLine can be called from any thread. ReadLine/ReadKey block the calling thread.
+// CancelRead() can be called from another thread to end a ReadLine that is waiting (see its comment).
 //
 // Line editing in ReadLine: Left/Right, Home/End, Backspace, Delete, Up/Down = history,
 // Esc = clear the line, Enter = validate.
@@ -58,6 +59,13 @@ namespace PicoCalcNano
         private bool _running;
         private bool _blinkReset;
         private bool _graphics;   // true while the program draws directly on the display
+
+        // A ReadLine in progress can be ended from another thread by CancelRead()
+        private readonly object _readLock = new object();                          // protects _reading and _cancelRequested
+        private readonly ManualResetEvent _readEnded = new ManualResetEvent(true); // set while no ReadLine is running
+        private bool _reading;           // a ReadLine is in progress
+        private bool _cancelRequested;   // CancelRead() was called during the current ReadLine
+        private bool _readCancelled;     // the last ReadLine ended because of CancelRead()
 
         // Where the line being edited starts (screen coordinates, kept up to date when the screen scrolls)
         private int _inputX;
@@ -227,6 +235,31 @@ namespace PicoCalcNano
             }
         }
 
+        // Like ReadKey(), but returns null as soon as CancelRead() has been called (used by ReadLine only).
+        private PicoCalcKeyEventArgs ReadKeyOrCancel()
+        {
+            while (true)
+            {
+                lock (_readLock)
+                {
+                    if (_cancelRequested)
+                    {
+                        return null;
+                    }
+                }
+
+                lock (_keys)
+                {
+                    if (_keys.Count > 0)
+                    {
+                        return (PicoCalcKeyEventArgs)_keys.Dequeue();
+                    }
+                }
+
+                _keyArrived.WaitOne();
+            }
+        }
+
         public string ReadLine(string prompt)
         {
             Write(prompt);
@@ -235,9 +268,75 @@ namespace PicoCalcNano
 
         /// <summary>
         /// Read a line with editing. Returns the text when Enter is pressed,
-        /// or null if Break / Ctrl+C is pressed (the line is abandoned).
+        /// or null if Break / Ctrl+C is pressed (the line is abandoned),
+        /// or null if another thread called CancelRead() (then ReadCancelled is true).
         /// </summary>
         public string ReadLine()
+        {
+            lock (_readLock)
+            {
+                _reading = true;
+                _cancelRequested = false;
+                _readCancelled = false;
+                _readEnded.Reset();
+            }
+
+            try
+            {
+                return ReadLineCore();
+            }
+            finally
+            {
+                lock (_readLock)
+                {
+                    _reading = false;
+                    _cancelRequested = false;
+                }
+
+                _readEnded.Set();
+            }
+        }
+
+        /// <summary>True if the last ReadLine returned null because CancelRead() was called
+        /// (false if it ended with Enter or Break).</summary>
+        public bool ReadCancelled
+        {
+            get { return _readCancelled; }
+        }
+
+        /// <summary>
+        /// Ends the ReadLine that is waiting, from ANOTHER thread (not from the thread that is in ReadLine).
+        /// ReadLine returns null and ReadCancelled becomes true; the text typed so far stays on the screen and the
+        /// cursor goes to the next line, so that the output of a program starts on a clean line. The line is not
+        /// added to the history. Call ReadLine again to get the input back.
+        /// Does nothing if no ReadLine is waiting. Waits (up to one second) until ReadLine has really ended, so the
+        /// caller can write to the console right after. Returns false only if that wait timed out.
+        /// Note: if the user validates the line (Enter) at the very moment of the call, ReadLine returns that line
+        /// normally and ReadCancelled stays false.
+        /// </summary>
+        public bool CancelRead()
+        {
+            return CancelRead(1000);
+        }
+
+        /// <summary>Same as CancelRead(), with a time limit in milliseconds for the wait.</summary>
+        public bool CancelRead(int timeoutMs)
+        {
+            lock (_readLock)
+            {
+                if (!_reading)
+                {
+                    return true;
+                }
+
+                _cancelRequested = true;
+            }
+
+            _keyArrived.Set();   // wakes up ReadLine if it is waiting for a key
+            return _readEnded.WaitOne(timeoutMs, false);
+        }
+
+        private string ReadLineCore()
         {
             string text = "";
             int index = 0;
@@ -252,7 +351,20 @@ namespace PicoCalcNano
 
             while (true)
             {
-                PicoCalcKeyEventArgs e = ReadKey();
+                PicoCalcKeyEventArgs e = ReadKeyOrCancel();
+                if (e == null)
+                {
+                    // CancelRead() was called: keep the typed text on the screen and go to the next line
+                    lock (_lock)
+                    {
+                        PlaceCursor(text.Length);
+                        _screen.NewLine();
+                    }
+
+                    _readCancelled = true;
+                    return null;
+                }
+
                 string before = text;
                 int code = e.Code;
 
