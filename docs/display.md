@@ -119,7 +119,8 @@ screen.Flush();                  // draws what changed
 |---|---|
 | `Columns`, `Rows` | 40, 20 (constants) |
 | `ForegroundColor`, `BackgroundColor` | Text colors. Set them **before** `ClearPanel()` |
-| `CursorVisible`, `CursorX`, `CursorY` | The cursor is drawn as an inverted cell |
+| `CursorVisible`, `CursorX`, `CursorY` | The cursor is drawn as an inverted cell, unless `CursorGlyph` is set |
+| `CursorGlyph` | Shape of the cursor: a `byte[]` of at least 16 bytes (16 rows of 8 pixels, the most significant bit is the leftmost pixel), drawn in the text colors instead of the inverted cell. `null` (default) = the inverted cell. The cursor keeps blinking with `CursorVisible`. `PicoCalcConsole.Busy` uses it to show an hourglass |
 | `Write(char)`, `Write(string)`, `WriteLine(string)`, `NewLine()` | Text output. Handles `\n`, `\r`, `\b` and tab (every 4 columns); other control characters are ignored |
 | `Backspace()` | Moves left and erases the character |
 | `SetCursor(x, y)` | Moves the cursor (clamped to the grid) |

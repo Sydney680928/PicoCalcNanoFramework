@@ -9,6 +9,10 @@ for now; when they start to diverge, the entries will say which package they con
 
 ### Added
 
+- `PicoCalcNano.Console`: `Busy` property. When true, the cursor is a blinking hourglass instead of the block, to show
+  that a program is running; when false, the usual block (waiting for input).
+- `PicoCalcNano.Display`: `PicoCalcTextScreen.CursorGlyph`, a custom shape for the text cursor (16 bytes, 8x16). The
+  console uses it for the hourglass. `PicoCalcNano.Console` therefore needs `PicoCalcNano.Display` 0.2 or later.
 - `PicoCalcNano.Console`: `CancelRead()` and `ReadCancelled`. Another thread can now end a `ReadLine` that is waiting
   (for example when a program is started from a PC while the console waits for a command): `ReadLine` returns `null`,
   the typed text stays on the screen and the cursor goes to the next line, so that the output of the program does not

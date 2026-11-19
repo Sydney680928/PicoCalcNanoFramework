@@ -58,6 +58,7 @@ deployment problems.
 | `Clear()` | Clears the screen and homes the cursor |
 | `SetCursor(x, y)` | Moves the cursor (column, row), clamped to the 40 × 20 grid |
 | `CursorVisible` | Shows or hides the cursor |
+| `Busy` | `true` shows a blinking **hourglass** as the cursor instead of the block (a program is running); `false` (default) the usual block. Can be set from any thread, also before `Start()` |
 
 ### Input
 
@@ -115,6 +116,21 @@ it in the main loop before every `ReadLine`.
 
 To run a blocking action from an event handler without blocking the event, post it to a worker thread (a queue that
 one thread empties) instead of running it in the handler.
+
+### Busy and idle cursor
+
+The cursor tells the user what the console is doing: the blinking block means "waiting for input", the blinking
+hourglass means "busy". Switch between the two with `Busy`:
+
+```csharp
+console.Busy = true;     // a program is running
+RunProgram();
+console.Busy = false;    // back to the input prompt
+```
+
+`Busy` only changes the shape of the cursor: it does not stop `ReadLine`. The hourglass follows the cursor as the
+program writes, and blinks like the block. It is drawn with the `CursorGlyph` of the text screen, see the
+[display doc](display.md#picocalctextscreen-a-40--20-text-layer).
 
 ### Graphics mode
 

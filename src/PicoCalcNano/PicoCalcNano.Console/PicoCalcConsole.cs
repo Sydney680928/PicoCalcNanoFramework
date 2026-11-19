@@ -26,6 +26,7 @@
 // The screen is refreshed by an internal thread; callers do not need to Flush or lock.
 // Write/WriteLine can be called from any thread. ReadLine/ReadKey block the calling thread.
 // CancelRead() can be called from another thread to end a ReadLine that is waiting (see its comment).
+// Busy = true shows a blinking hourglass as the cursor (a program is running), Busy = false the usual block.
 //
 // Line editing in ReadLine: Left/Right, Home/End, Backspace, Delete, Up/Down = history,
 // Esc = clear the line, Enter = validate.
@@ -59,6 +60,28 @@ namespace PicoCalcNano
         private bool _running;
         private bool _blinkReset;
         private bool _graphics;   // true while the program draws directly on the display
+        private bool _busy;       // true while the cursor is the hourglass
+
+        // Hourglass cursor, 8x16 (a few blank rows at the top and the bottom)
+        private static readonly byte[] HourglassGlyph = new byte[]
+        {
+            0x00,   // ........
+            0x7E,   // .######.
+            0x42,   // .#....#.
+            0x42,   // .#....#.
+            0x24,   // ..#..#..
+            0x24,   // ..#..#..
+            0x18,   // ...##...
+            0x18,   // ...##...
+            0x18,   // ...##...
+            0x18,   // ...##...
+            0x24,   // ..#..#..
+            0x24,   // ..#..#..
+            0x5A,   // .#.##.#.
+            0x7E,   // .######.
+            0x7E,   // .######.
+            0x00    // ........
+        };
 
         // A ReadLine in progress can be ended from another thread by CancelRead()
         private readonly object _readLock = new object();                          // protects _reading and _cancelRequested
@@ -115,6 +138,11 @@ namespace PicoCalcNano
             _screen = new PicoCalcTextScreen(_display);
             _screen.ForegroundColor = ForegroundColor;
             _screen.BackgroundColor = BackgroundColor;
+            if (_busy)
+            {
+                _screen.CursorGlyph = HourglassGlyph;
+            }
+
             _screen.ClearPanel();
             _screen.Flush();
 
@@ -184,6 +212,29 @@ namespace PicoCalcNano
                 {
                     _screen.CursorVisible = value;
                     _screen.Invalidate();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Busy indicator. When true, the cursor is a blinking hourglass instead of the block: use it while a
+        /// program is running. When false (default), the usual blinking block. Can be set from any thread, also
+        /// before Start().
+        /// </summary>
+        public bool Busy
+        {
+            get { return _busy; }
+            set
+            {
+                lock (_lock)
+                {
+                    _busy = value;
+
+                    if (_screen != null)
+                    {
+                        _screen.CursorGlyph = value ? HourglassGlyph : null;
+                        _blinkReset = true;   // the new cursor is shown at once, then blinks
+                    }
                 }
             }
         }

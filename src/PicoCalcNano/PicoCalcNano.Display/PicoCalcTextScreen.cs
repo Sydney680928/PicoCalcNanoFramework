@@ -44,10 +44,38 @@ namespace PicoCalcNano
         private readonly bool[] _need = new bool[Columns];
         private readonly char[] _runChars = new char[Columns];
         private bool _dirty = true;      // something changed since the last Flush()
+        private byte[] _cursorGlyph;     // custom cursor shape, null = inverted block
 
         public int ForegroundColor = PicoCalcColors.White;
         public int BackgroundColor = PicoCalcColors.Black;
         public bool CursorVisible = true;
+
+        /// <summary>
+        /// Shape of the cursor: 16 bytes (PicoCalcFont.GlyphHeight rows, 8 pixels per row, the most significant bit
+        /// is the leftmost pixel), drawn in the text colors instead of the inverted block. null (default) = the
+        /// usual inverted block. The cursor still blinks with CursorVisible.
+        /// </summary>
+        public byte[] CursorGlyph
+        {
+            get { return _cursorGlyph; }
+            set
+            {
+                if (value != null && value.Length < PicoCalcFont.GlyphHeight)
+                {
+                    throw new ArgumentException();
+                }
+
+                _cursorGlyph = value;
+
+                // Draw the cursor cell again with the new shape on the next Flush()
+                if (_shownCursor >= 0)
+                {
+                    _shown[_shownCursor] = '\0';
+                }
+
+                _dirty = true;
+            }
+        }
 
         /// <summary>Number of scrolls since creation (lets callers track text that moved up).</summary>
         public int ScrollCount;
@@ -355,6 +383,19 @@ namespace PicoCalcNano
 
         private void DrawCell(int physicalRow, int col, char c, bool inverted)
         {
+            if (inverted && _cursorGlyph != null)
+            {
+                // Custom cursor shape (for example an hourglass), in the normal colors
+                _display.DrawGlyph(
+                    col * PicoCalcFont.GlyphWidth,
+                    physicalRow * PicoCalcFont.GlyphHeight,
+                    _cursorGlyph,
+                    0,
+                    ForegroundColor,
+                    BackgroundColor);
+                return;
+            }
+
             int fg = inverted ? BackgroundColor : ForegroundColor;
             int bg = inverted ? ForegroundColor : BackgroundColor;
 
