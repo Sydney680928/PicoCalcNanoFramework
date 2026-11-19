@@ -17,7 +17,7 @@ separate piece so that other projects can use it as well.
 
 The screen is refreshed by an internal thread (every 20 ms; the cursor blinks every 500 ms): you do **not** call
 `Flush()` and you do not need any lock. `Write` and `WriteLine` can be called from any thread.
-`ReadLine` and `ReadKey` block the calling thread.
+`ReadLine` and `ReadKey` block the calling thread; another thread can end a waiting `ReadLine` with `CancelRead()`.
 
 ## Quick start
 
@@ -64,7 +64,9 @@ deployment problems.
 | Member | Description |
 |---|---|
 | `ReadLine(string prompt)` | Writes the prompt, then calls `ReadLine()` |
-| `ReadLine()` | Reads a line with editing, see below. Returns `null` if Break or Ctrl+C is pressed (the line is abandoned) |
+| `ReadLine()` | Reads a line with editing, see below. Returns `null` if Break or Ctrl+C is pressed (the line is abandoned), or if another thread called `CancelRead()` |
+| `CancelRead()`, `CancelRead(int timeoutMs)` | Called from **another thread**: ends the `ReadLine` that is waiting, see [Ending a ReadLine from another thread](#ending-a-readline-from-another-thread). Waits up to 1 s (or `timeoutMs`) until `ReadLine` has really ended; returns `false` only if that wait timed out |
+| `ReadCancelled` | `true` if the last `ReadLine` returned `null` because of `CancelRead()` (`false` for Enter or Break) |
 | `ReadKey()` | Waits for the next key press (auto-repeat included) and returns a `PicoCalcKeyEventArgs`. Modifier keys alone are not reported |
 | `KeyAvailable` | `true` if a key event is waiting for `ReadKey()` |
 | `ClearKeys()` | Forgets the key presses waiting for `ReadKey()` |
@@ -75,6 +77,44 @@ Backspace and Delete erase, Up and Down browse the history (the last 20 lines), 
 A line is limited to 200 characters. Characters typed in the middle of the line are inserted.
 
 Key codes (`PicoCalcKeys`) and what a `PicoCalcKeyEventArgs` contains are described in the [keyboard doc](keyboard.md).
+
+### Ending a ReadLine from another thread
+
+`ReadLine` normally ends with Enter or Break. When something else decides that the input must stop (for example an
+order received from a PC while the console is waiting for a command), call `CancelRead()` **from another thread**:
+
+- `ReadLine` returns `null` and `ReadCancelled` is `true`;
+- the text typed so far stays on the screen and the cursor goes to the next line, so that the output of the program
+  you start starts on a clean line (without this, the input line keeps redrawing itself where it started, over the
+  output);
+- the line is not added to the history;
+- `CancelRead()` returns once `ReadLine` has really ended, so you can write to the console right after;
+- if no `ReadLine` is waiting, it does nothing.
+
+```csharp
+// Thread that receives the external order
+console.CancelRead();           // the console leaves the input mode
+RunProgram();                   // its output goes to the console normally
+console.ClearKeys();            // forget the keys typed meanwhile
+
+// Main loop
+string line = console.ReadLine("> ");
+if (line == null && console.ReadCancelled)
+{
+    // wait until the external program has finished, then loop: ReadLine gives the input back
+}
+```
+
+Do not call `CancelRead()` from the thread that is inside `ReadLine`. If the user presses Enter at the very moment of
+the call, `ReadLine` returns that line normally and `ReadCancelled` stays `false`.
+
+**Watch out for the timing.** If the order arrives while your main loop is not inside `ReadLine` (it is processing a
+command), `CancelRead()` finds nothing to cancel, and the loop may call `ReadLine` again while the external program
+runs. Keep a flag in your application ("external run in progress"), set it **before** calling `CancelRead()` and test
+it in the main loop before every `ReadLine`.
+
+To run a blocking action from an event handler without blocking the event, post it to a worker thread (a queue that
+one thread empties) instead of running it in the handler.
 
 ### Graphics mode
 
@@ -125,7 +165,8 @@ shown until a key is pressed).
 - **Break while a program runs:** subscribe to `BreakPressed` to stop long work. The event comes from the keyboard
   thread, so just set a flag in the handler.
 - **Several threads:** `Write`, `WriteLine`, `Clear` and `SetCursor` are safe from any thread. Only one thread should
-  call `ReadLine` or `ReadKey` at a time.
+  call `ReadLine` or `ReadKey` at a time. `CancelRead()` is the one input method meant to be called from another
+  thread, and it only affects `ReadLine`, not `ReadKey`.
 - **Memory:** the text grid and the font use only a few KB. A `PicoCalcCanvas` used in graphics mode adds its own
   `width × height × 2` bytes.
 - **Font:** characters from U+0020 to U+00FF are drawn (accents included). Other characters are not available.
