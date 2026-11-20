@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.37827.9 d17.14
+VisualStudioVersion = 17.14.37827.9
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{11A8DD76-328B-46DF-9F39-F559912D0360}") = "PicoCalcNanoSample", "PicoCalcNanoSample\PicoCalcNanoSample.nfproj", "{E611AAE8-C870-49F7-9202-8AD91A76BA4C}"
+EndProject
+Project("{11A8DD76-328B-46DF-9F39-F559912D0360}") = "PicoCalcMatrix", "PicoCalcMatrix\PicoCalcMatrix.nfproj", "{5BD5E4B9-4E45-4BDE-9B8D-3CDB9C1BF9DC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,6 +19,12 @@ Global
 		{E611AAE8-C870-49F7-9202-8AD91A76BA4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E611AAE8-C870-49F7-9202-8AD91A76BA4C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E611AAE8-C870-49F7-9202-8AD91A76BA4C}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{5BD5E4B9-4E45-4BDE-9B8D-3CDB9C1BF9DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BD5E4B9-4E45-4BDE-9B8D-3CDB9C1BF9DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BD5E4B9-4E45-4BDE-9B8D-3CDB9C1BF9DC}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{5BD5E4B9-4E45-4BDE-9B8D-3CDB9C1BF9DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5BD5E4B9-4E45-4BDE-9B8D-3CDB9C1BF9DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5BD5E4B9-4E45-4BDE-9B8D-3CDB9C1BF9DC}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
