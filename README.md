@@ -95,6 +95,8 @@ console.WriteLine("You typed: " + line);
 
 The SD card and the sound are used on their own, see their docs.
 
+<img src="./images/matrix.gif" title="" alt="PicoCalc on .NET nanoFramework" data-align="center">
+
 ## General tips
 
 1. Add a `Thread.Sleep(3000)` at the start of `Main`: it gives the debugger time to take over.
