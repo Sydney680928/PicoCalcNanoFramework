@@ -158,6 +158,8 @@ namespace PicoCalcNano
                 settings.DataBitLength = 8;
                 _spi = SpiDevice.Create(settings);
             }
+
+            _cs.Write(PinValue.Low);   // HoldChipSelect is on by default
         }
 
         public void Init()
@@ -169,6 +171,9 @@ namespace PicoCalcNano
             Thread.Sleep(20);
             _rst.Write(PinValue.High);
             Thread.Sleep(150);
+
+            _winX0 = -1;   // the controller forgets its window at reset
+            _winY0 = -1;
 
             WriteCommand(CmdSwReset);
             Thread.Sleep(150);
@@ -298,12 +303,60 @@ namespace PicoCalcNano
                 _runBuffer = new byte[total];
             }
 
-            for (int i = 0; i < count; i++)
+            byte[] font = PicoCalcFont.Data;
+
+            if (count < 3)
             {
-                int offset = PicoCalcFont.GlyphOffset(chars[start + i]);
-                for (int row = 0; row < GlyphHeight; row++)
+                // Short run: copy every row of every glyph
+                for (int i = 0; i < count; i++)
                 {
-                    Array.Copy(_expandTable, PicoCalcFont.Data[offset + row] * rowBytes, _runBuffer, row * lineBytes + i * rowBytes, rowBytes);
+                    int offset = PicoCalcFont.GlyphOffset(chars[start + i]);
+                    for (int row = 0; row < GlyphHeight; row++)
+                    {
+                        Array.Copy(_expandTable, font[offset + row] * rowBytes, _runBuffer, row * lineBytes + i * rowBytes, rowBytes);
+                    }
+                }
+            }
+            else
+            {
+                // Longer run: paint the whole buffer with the background first (a few copies of growing size),
+                // then copy only the glyph rows that have pixels set: every Array.Copy costs about 0.09 ms in
+                // managed code, and many rows of a glyph (and all the rows of a space) are empty.
+                Array.Copy(_expandTable, 0, _runBuffer, 0, rowBytes);   // pattern 0 = 8 background pixels
+                int filled = rowBytes;
+                while (filled < total)
+                {
+                    int part = total - filled;
+                    if (part > filled)
+                    {
+                        part = filled;
+                    }
+
+                    Array.Copy(_runBuffer, 0, _runBuffer, filled, part);
+                    filled += part;
+                }
+
+                for (int i = 0; i < count; i++)
+                {
+                    char c = chars[start + i];
+                    if (c == ' ')
+                    {
+                        continue;
+                    }
+
+                    int offset = PicoCalcFont.GlyphOffset(c);
+                    int dst = i * rowBytes;
+
+                    for (int row = 0; row < GlyphHeight; row++)
+                    {
+                        int pattern = font[offset + row];
+                        if (pattern != 0)
+                        {
+                            Array.Copy(_expandTable, pattern * rowBytes, _runBuffer, dst, rowBytes);
+                        }
+
+                        dst += lineBytes;
+                    }
                 }
             }
 
@@ -540,13 +593,14 @@ namespace PicoCalcNano
         // Every GPIO write costs time in managed code, so avoid the useless ones: DC is only
         // written when it changes, and CS can be held low permanently (nothing else is on this bus).
 
-        private bool _holdCs;
+        private bool _holdCs = true;
         private bool _dcLevel = true;   // matches the initial write in the constructor
 
         /// <summary>
-        /// Keep the display chip select low all the time instead of toggling it around every
-        /// transfer. Saves many slow GPIO writes (a text cell gets several times faster).
-        /// Safe as long as nothing else shares the display's SPI bus (true on the PicoCalc).
+        /// Keep the display chip select low all the time (default true) instead of toggling it around every
+        /// transfer. Saves two slow GPIO writes per transfer (about 10 % on a text cell).
+        /// Safe as long as nothing else shares the display's SPI bus (true on the PicoCalc). Set it to false
+        /// to get the chip select toggled around every transfer, as in version 0.2.
         /// </summary>
         public bool HoldChipSelect
         {
@@ -583,10 +637,45 @@ namespace PicoCalcNano
             }
         }
 
+        // Window currently set in the controller (-1 = unknown). A window costs two commands (column range, row
+        // range) and each command is two SPI transfers: when one of the two ranges has not changed (the cells of a
+        // text line share the same rows, the strips of an animation always cover the whole height...) it is not sent again.
+        private int _winX0 = -1;
+        private int _winX1 = -1;
+        private int _winY0 = -1;
+        private int _winY1 = -1;
+        private readonly byte[] _address = new byte[4];
+
+        /// <summary>
+        /// Does not send again the column range or the row range of the window when it is the same as the previous
+        /// one (default true). Saves two SPI transfers per range. Set it to false only if something else changes the
+        /// window of the controller behind the driver's back.
+        /// </summary>
+        public bool WindowCache = true;
+
         public void SetWindow(int x0, int y0, int x1, int y1)
         {
-            WriteCommand(CmdColumnAddress, new byte[] { (byte)(x0 >> 8), (byte)(x0 & 0xFF), (byte)(x1 >> 8), (byte)(x1 & 0xFF) });
-            WriteCommand(CmdPageAddress, new byte[] { (byte)(y0 >> 8), (byte)(y0 & 0xFF), (byte)(y1 >> 8), (byte)(y1 & 0xFF) });
+            if (!WindowCache || x0 != _winX0 || x1 != _winX1)
+            {
+                _address[0] = (byte)(x0 >> 8);
+                _address[1] = (byte)(x0 & 0xFF);
+                _address[2] = (byte)(x1 >> 8);
+                _address[3] = (byte)(x1 & 0xFF);
+                WriteCommand(CmdColumnAddress, _address);
+                _winX0 = x0;
+                _winX1 = x1;
+            }
+
+            if (!WindowCache || y0 != _winY0 || y1 != _winY1)
+            {
+                _address[0] = (byte)(y0 >> 8);
+                _address[1] = (byte)(y0 & 0xFF);
+                _address[2] = (byte)(y1 >> 8);
+                _address[3] = (byte)(y1 & 0xFF);
+                WriteCommand(CmdPageAddress, _address);
+                _winY0 = y0;
+                _winY1 = y1;
+            }
         }
 
         public void Dispose()
