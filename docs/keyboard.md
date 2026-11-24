@@ -148,6 +148,8 @@ else
   after power-on), when the keyboard firmware is older than **1.2** (the battery register was added in that version), or
   on an I2C error.
 - For a correct level, power the PicoCalc on with the battery inserted, then connect the USB cable.
+- The charging flag follows the charger: it is set while charging (for example raw `0xD5` = 85 % and charging), but near
+  100 % the charger stops and `IsCharging` can be `false` even with the USB-C cable plugged (seen at 98 %).
 - `Alt + B` on the keyboard makes the top-left LED blink to show the level (3 blinks: full or above 80 %, 2: about
   50 %, 1: low): handy to compare with what the driver reads.
 - `PicoCalcConsole` owns its keyboard and does not expose the battery: read it with a `PicoCalcKeyboard` of your own
