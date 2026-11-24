@@ -8,9 +8,9 @@ Driver for the PicoCalc 4" IPS display (320 × 320 pixels). It has three layers 
 
 The font (`PicoCalcFont`) is an 8 × 16 table (GNU Unifont, U+0020 to U+00FF, accents included).
 
-- Source files: `PicoCalcDisplay.cs` (also contains `PicoCalcColors`), `PicoCalcTextScreen.cs`, `PicoCalcCanvas.cs`, `PicoCalcFont.cs`
+- Source files: `PicoCalcDisplay.cs` (also contains `PicoCalcColors`), `PicoCalcTextScreen.cs` (also contains `PicoCalcPalette`), `PicoCalcCanvas.cs`, `PicoCalcFont.cs`, `PicoCalcSymbols.cs`
 - NuGet packages: `nanoFramework.System.Device.Gpio`, `nanoFramework.System.Device.Spi`
-- Colors are `int` values `0xRRGGBB` everywhere (see `PicoCalcColors`: Black, White, Red, Green, Blue, Yellow, Cyan, Magenta)
+- Colors are `int` values `0xRRGGBB` for `PicoCalcDisplay` and `PicoCalcCanvas` (see `PicoCalcColors`: Black, White, Red, Green, Blue, Yellow, Cyan, Magenta). The **text screen** works differently: it uses a palette of 16 colors, see [Colors](#colors-of-the-text-screen)
 
 If you only want a text console with a keyboard, use [`PicoCalcConsole`](console.md) instead: it drives these classes for you.
 
@@ -104,7 +104,7 @@ The controller has **480 lines of memory** while the panel shows 320. The scroll
 
 ## `PicoCalcTextScreen`: a 40 × 20 text layer
 
-Characters are written into an in-memory grid; `Flush()` redraws only the cells that changed. A newline at the
+Characters are written into an in-memory grid; every cell has its own text color and background color. `Flush()` redraws only the cells that changed. A newline at the
 bottom moves the hardware scroll start (plus one blank row to draw) instead of redrawing the screen. Neighbouring
 changed cells of a line are sent together.
 
@@ -118,14 +118,17 @@ screen.Flush();                  // draws what changed
 | Member | Description |
 |---|---|
 | `Columns`, `Rows` | 40, 20 (constants) |
-| `ForegroundColor`, `BackgroundColor` | Text colors. Set them **before** `ClearPanel()` |
+| `Foreground`, `Background` | Text color and background color of what is written from now on: an index in the palette (0 to 15, see `PicoCalcPalette`). Can be changed at any time, see [Colors](#colors-of-the-text-screen) |
+| `GetPaletteColor(index)`, `SetPaletteColor(index, rgb)` | Reads or changes the `0xRRGGBB` value of a palette entry |
+| `NearestColorIndex(rgb)` | Index of the palette entry nearest to an RGB color |
+| `PaletteSize` | 16 (constant) |
 | `CursorVisible`, `CursorX`, `CursorY` | The cursor is drawn as an inverted cell, unless `CursorGlyph` is set |
 | `CursorGlyph` | Shape of the cursor: a `byte[]` of at least 16 bytes (16 rows of 8 pixels, the most significant bit is the leftmost pixel), drawn in the text colors instead of the inverted cell. `null` (default) = the inverted cell. The cursor keeps blinking with `CursorVisible`. `PicoCalcConsole.Busy` uses it to show an hourglass |
 | `Write(char)`, `Write(string)`, `WriteLine(string)`, `NewLine()` | Text output. Handles `\n`, `\r`, `\b` and tab (every 4 columns); other control characters are ignored |
 | `Backspace()` | Moves left and erases the character |
 | `SetCursor(x, y)` | Moves the cursor (clamped to the grid) |
-| `Clear()` | Clears the grid and homes the cursor (drawn on the next `Flush()`) |
-| `ClearPanel()` | Paints the whole panel in one fast fill and marks every cell as drawn. Use it once at the start |
+| `Clear()` | Clears the grid with the current background color and homes the cursor (drawn on the next `Flush()`) |
+| `ClearPanel()` | Paints the whole panel with the current background color in one fast fill and marks every cell as drawn. Use it once at the start |
 | `Flush()` | Draws the changed cells |
 | `Invalidate()` | Forces the next `Flush()` to look at the grid again (after toggling `CursorVisible`, for instance) |
 | `ScrollCount` | Number of scrolls since the start |
@@ -133,6 +136,81 @@ screen.Flush();                  // draws what changed
 
 **`PicoCalcTextScreen` is not thread-safe.** If several threads use it, put a lock around every call, `Flush()`
 included. `PicoCalcConsole` does this for you.
+
+### Colors of the text screen
+
+Every cell of the grid keeps **its own** text color and background color, taken from a palette of 16 colors. The
+palette has the same names and the same numbers as the .NET `ConsoleColor` enumeration (`PicoCalcPalette`), with the
+default colors of the Windows console:
+
+| Index | Name | `0xRRGGBB` | Index | Name | `0xRRGGBB` |
+|---|---|---|---|---|---|
+| 0 | `Black` | `000000` | 8 | `DarkGray` | `767676` |
+| 1 | `DarkBlue` | `0037DA` | 9 | `Blue` | `3B78FF` |
+| 2 | `DarkGreen` | `13A10E` | 10 | `Green` | `16C60C` |
+| 3 | `DarkCyan` | `3A96DD` | 11 | `Cyan` | `61D6D6` |
+| 4 | `DarkRed` | `C50F1F` | 12 | `Red` | `E74856` |
+| 5 | `DarkMagenta` | `881798` | 13 | `Magenta` | `B4009E` |
+| 6 | `DarkYellow` | `C19C00` | 14 | `Yellow` | `F9F1A5` |
+| 7 | `Gray` | `CCCCCC` | 15 | `White` | `F2F2F2` |
+
+The default text color is `White` and the default background is `Black`.
+
+```csharp
+screen.Foreground = PicoCalcPalette.Red;
+screen.Write("error ");
+screen.Foreground = PicoCalcPalette.White;      // changes whenever you want
+screen.WriteLine("(see above)");
+
+screen.Background = PicoCalcPalette.DarkBlue;   // text written from now on is on dark blue
+screen.WriteLine(" Title ");
+```
+
+- `Foreground` and `Background` apply to what is written **afterwards**: the text that is already on the screen
+  keeps its colors (and keeps them when it scrolls).
+- A blank cell (a space) only has a background color.
+- `Clear()` and `ClearPanel()` erase with the **current** background color: set `Background`, then `Clear()` to
+  get a screen of that color.
+- The cursor (an inverted cell) uses the colors of the cell under it; on a blank cell it takes the current text color.
+- `SetPaletteColor(index, rgb)` changes the color of a palette entry: what is displayed with that entry is redrawn
+  with the new color at the next `Flush()`. For instance `screen.SetPaletteColor(PicoCalcPalette.Green, 0x00FF00)` for a
+  purer green. The palette is only used by the text screen; `PicoCalcDisplay` and `PicoCalcCanvas` keep taking RGB colors.
+- To use an RGB color with the text screen, get its index with `NearestColorIndex(rgb)` (the exact entry if there is
+  one, else the nearest), or put it into the palette with `SetPaletteColor`.
+
+### User-defined symbols
+
+The codes U+007F and U+0080 to U+009F (33 codes) are blank in the font: `PicoCalcSymbols` lets you give them a shape
+of your own (a heart, a battery gauge, a game sprite, a box-drawing character...). A symbol is then written like any
+character: `screen.Write((char)0x80)`, `"Life: \u0080\u0080\u0080"`, or `display.DrawText(...)`.
+
+```csharp
+PicoCalcSymbols.Define((char)0x80, new string[]
+{
+    "........",
+    ".##..##.",
+    "########",
+    "########",
+    "########",
+    ".######.",
+    "..####..",
+    "...##..."
+});
+```
+
+| Member | Description |
+|---|---|
+| `First`, `Last`, `Count` | `(char)0x7F`, `(char)0x9F`, 33 |
+| `IsSymbol(char)` | `true` if the code can be redefined |
+| `Define(char code, byte[] rows)` | 8 bytes (8 rows of 8 pixels; each row is doubled to fill the 16 rows of the glyph) or 16 bytes. The most significant bit is the leftmost pixel |
+| `Define(char code, string[] pattern)` | 8 or 16 strings of 8 characters, `#` = pixel on, any other character = off |
+| `Clear(char code)`, `ClearAll()` | Back to blank |
+| `Version` | Incremented at every change |
+
+- Redefining a symbol is visible at once on the **text screen**: the cells that show it are redrawn at the next
+  `Flush()`. What `DrawText` or `DrawGlyph` already drew on the display is not changed.
+- A wrong code or a wrong size throws `ArgumentOutOfRangeException` / `ArgumentException`.
+- The symbols are shared by the whole program (they are static) and are blank again at every start.
 
 ### Mixing text and graphics
 

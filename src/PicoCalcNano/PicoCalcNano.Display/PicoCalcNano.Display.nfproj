@@ -21,6 +21,7 @@
     <Compile Include="PicoCalcCanvas.cs" />
     <Compile Include="PicoCalcDisplay.cs" />
     <Compile Include="PicoCalcFont.cs" />
+    <Compile Include="PicoCalcSymbols.cs" />
     <Compile Include="PicoCalcTextScreen.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

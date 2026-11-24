@@ -32,7 +32,12 @@
 // Esc = clear the line, Enter = validate.
 //
 // NuGet packages needed: PicoCalcNano.Keyboard and PicoCalcNano.Display (the latter brings the font).
-// Set ForegroundColor / BackgroundColor BEFORE Start().
+//
+// Colors: Foreground / Background are indexes (0 to 15, see PicoCalcPalette) in the palette of 16 colors; they can
+// be changed at any time, before or after Start(). They apply to the text written afterwards (the text already on the
+// screen keeps its colors). GetPaletteColor / SetPaletteColor read and change the RGB value of a palette entry.
+// Clear() erases with the current background color. The line being typed in ReadLine uses the colors that are
+// current while it is typed.
 
 using System;
 using System.Collections;
@@ -94,8 +99,91 @@ namespace PicoCalcNano
         private int _inputX;
         private int _inputY;
 
-        public int ForegroundColor = PicoCalcColors.White;
-        public int BackgroundColor = PicoCalcColors.Black;
+        private int _foreground = PicoCalcPalette.White;
+        private int _background = PicoCalcPalette.Black;
+
+        /// <summary>
+        /// Text color of what is written from now on: index in the palette (0 to 15, see PicoCalcPalette). Can be
+        /// changed at any time, from any thread; the text already on the screen keeps its colors. Default White.
+        /// </summary>
+        public int Foreground
+        {
+            get { return _foreground; }
+            set
+            {
+                lock (_lock)
+                {
+                    CheckPaletteIndex(value);
+                    _foreground = value;
+
+                    if (_screen != null)
+                    {
+                        _screen.Foreground = value;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Background color of what is written from now on (and of what Clear() erases): index in the palette
+        /// (0 to 15, see PicoCalcPalette). Can be changed at any time, from any thread. Default Black.
+        /// </summary>
+        public int Background
+        {
+            get { return _background; }
+            set
+            {
+                lock (_lock)
+                {
+                    CheckPaletteIndex(value);
+                    _background = value;
+
+                    if (_screen != null)
+                    {
+                        _screen.Background = value;
+                    }
+                }
+            }
+        }
+
+        private static void CheckPaletteIndex(int index)
+        {
+            if (index < 0 || index >= PicoCalcTextScreen.PaletteSize)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        /// <summary>Number of colors in the palette (16).</summary>
+        public int PaletteSize { get { return PicoCalcTextScreen.PaletteSize; } }
+
+        /// <summary>Color (0xRRGGBB) of a palette entry, index 0 to 15. Needs Start() to have been called.</summary>
+        public int GetPaletteColor(int index)
+        {
+            lock (_lock)
+            {
+                return _screen.GetPaletteColor(index);
+            }
+        }
+
+        /// <summary>Index (0 to 15) of the palette entry nearest to a 0xRRGGBB color. Needs Start() to have been called.</summary>
+        public int NearestColorIndex(int rgb)
+        {
+            lock (_lock)
+            {
+                return _screen.NearestColorIndex(rgb);
+            }
+        }
+
+        /// <summary>Changes the color (0xRRGGBB) of a palette entry, index 0 to 15. What is on the screen in that
+        /// color is redrawn with the new one. Needs Start() to have been called.</summary>
+        public void SetPaletteColor(int index, int rgb)
+        {
+            lock (_lock)
+            {
+                _screen.SetPaletteColor(index, rgb);
+            }
+        }
 
         /// <summary>Raised (on the keyboard thread) when Break (Shift+Esc) or Ctrl+C is pressed,
         /// whether or not ReadLine is waiting. Typical use: stop a running script.</summary>
@@ -136,8 +224,8 @@ namespace PicoCalcNano
             _display.Init();
 
             _screen = new PicoCalcTextScreen(_display);
-            _screen.ForegroundColor = ForegroundColor;
-            _screen.BackgroundColor = BackgroundColor;
+            _screen.Foreground = _foreground;
+            _screen.Background = _background;
             if (_busy)
             {
                 _screen.CursorGlyph = HourglassGlyph;

@@ -7,6 +7,28 @@ independently; the repository tag is the highest package version, and the entrie
 
 ## [Unreleased]
 
+### Added
+
+- `PicoCalcNano.Display`: user-defined symbols. `PicoCalcSymbols.Define()` gives a shape to the codes U+007F and
+  U+0080 to U+009F (33 codes, blank in the font): hearts, gauges, sprites, box-drawing characters. The text screen
+  redraws the cells that show a symbol when it is redefined.
+- `PicoCalcNano.Display`: colors per character in `PicoCalcTextScreen`. Every cell has its own text and background
+  colors, taken from a palette of 16 colors with the names and numbers of the .NET `ConsoleColor` enumeration
+  (`PicoCalcPalette`) and the default colors of the Windows console. `Foreground` and `Background` can be changed at
+  any time and apply to the text written afterwards. `GetPaletteColor()`, `SetPaletteColor()` and
+  `NearestColorIndex()` give access to the RGB value of the palette entries.
+- `PicoCalcNano.Console`: `Foreground` and `Background` can be changed at any time (the text already displayed keeps
+  its colors), and `GetPaletteColor()`, `SetPaletteColor()`, `NearestColorIndex()` and `PaletteSize`. `Clear()` erases
+  with the current background color. `PicoCalcNano.Console` therefore needs `PicoCalcNano.Display` 0.3 or later.
+
+### Changed
+
+- **Breaking change** (`PicoCalcNano.Console`, `PicoCalcNano.Display`): `PicoCalcConsole.ForegroundColor` and
+  `BackgroundColor` (`0xRRGGBB` fields, to set before `Start()`) are replaced by `Foreground` and `Background`, which
+  are palette indexes (0 to 15, use `PicoCalcPalette`). Replace `console.ForegroundColor = PicoCalcColors.Red` by
+  `console.Foreground = PicoCalcPalette.Red`, or use `NearestColorIndex(rgb)` for an RGB color. The same change applies
+  to `PicoCalcTextScreen`. `PicoCalcDisplay` and `PicoCalcCanvas` still use `0xRRGGBB` colors.
+
 ## [0.2.0] - 2026-11-19
 
 Packages in this release: `PicoCalcNano.Display` 0.2.0, `PicoCalcNano.Console` 0.2.0 and `PicoCalcNano.Sound` 0.2.0.

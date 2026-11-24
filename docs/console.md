@@ -5,6 +5,7 @@ history. It knows nothing about any application: use it for a REPL, a shell, a g
 separate piece so that other projects can use it as well.
 
 - Source file: `PicoCalcConsole.cs`
+- Needs `PicoCalcNano.Display` 0.3 or later when you use the packages (colors, `PicoCalcPalette`)
 - Depends on the [display](display.md) (`PicoCalcDisplay`, `PicoCalcTextScreen`, `PicoCalcFont`) and the
   [keyboard](keyboard.md) (`PicoCalcKeyboard`) drivers: add their source files, or their packages
 - NuGet packages: the ones of those two drivers (Gpio, Spi, I2c, plus Collections for the key queue)
@@ -45,7 +46,6 @@ deployment problems.
 |---|---|
 | `PicoCalcConsole()` | Hardware SPI at 62.5 MHz |
 | `PicoCalcConsole(int spiFrequency)` | Another SPI clock (the firmware caps anything above 62.5 MHz) |
-| `ForegroundColor`, `BackgroundColor` | Text colors (`0xRRGGBB`). Set them **before** `Start()` |
 | `Start()` | Initialises the display, clears it, starts the keyboard and the refresh thread |
 | `Dispose()` | Stops everything and releases the display and the keyboard (this resets the panel) |
 | `Columns`, `Rows` | 40, 20 |
@@ -55,9 +55,11 @@ deployment problems.
 | Member | Description |
 |---|---|
 | `Write(string)`, `Write(char)`, `WriteLine(string)`, `WriteLine()` | Text output at the cursor. `\n`, `\r`, `\b` and tab are handled |
-| `Clear()` | Clears the screen and homes the cursor |
+| `Clear()` | Clears the screen (with the current background color) and homes the cursor |
 | `SetCursor(x, y)` | Moves the cursor (column, row), clamped to the 40 × 20 grid |
 | `CursorVisible` | Shows or hides the cursor |
+| `Foreground`, `Background` | Text color and background color of what is written from now on: an index in the palette of 16 colors (0 to 15, see `PicoCalcPalette` and [Colors](#colors)). Can be changed at any time, also before `Start()` |
+| `GetPaletteColor(index)`, `SetPaletteColor(index, rgb)`, `NearestColorIndex(rgb)`, `PaletteSize` | The palette: read or change the `0xRRGGBB` value of an entry, find the entry nearest to an RGB color. Need `Start()` to have been called |
 | `Busy` | `true` shows a blinking **hourglass** as the cursor instead of the block (a program is running); `false` (default) the usual block. Can be set from any thread, also before `Start()` |
 
 ### Input
@@ -116,6 +118,31 @@ it in the main loop before every `ReadLine`.
 
 To run a blocking action from an event handler without blocking the event, post it to a worker thread (a queue that
 one thread empties) instead of running it in the handler.
+
+### Colors
+
+Every character of the screen has its own text color and background color, chosen among the 16 entries of a palette
+(`PicoCalcPalette`: the names and numbers of the .NET `ConsoleColor` enumeration, with the default colors of the
+Windows console; the table is in the [display doc](display.md#colors-of-the-text-screen)). Change `Foreground` and
+`Background` whenever you want: they apply to what `Write` and `WriteLine` output afterwards.
+
+```csharp
+console.Foreground = PicoCalcPalette.Red;
+console.WriteLine("Error: file not found");
+console.Foreground = PicoCalcPalette.White;
+console.WriteLine("Back to white");
+
+console.Background = PicoCalcPalette.DarkBlue;
+console.Clear();                       // the whole screen is dark blue
+```
+
+- The text that is already on the screen keeps its colors, also when it scrolls.
+- `Clear()` erases with the current background color.
+- The line being typed in `ReadLine` is drawn with the colors current **while it is typed**: set the colors of the
+  input before calling `ReadLine`, and set them back afterwards.
+- An index outside 0 to 15 throws `ArgumentOutOfRangeException`.
+- `SetPaletteColor(index, rgb)` changes the color of a palette entry (all the text displayed with it changes at once);
+  `NearestColorIndex(rgb)` gives the entry nearest to an RGB color.
 
 ### Busy and idle cursor
 
@@ -180,12 +207,14 @@ shown until a key is pressed).
 
 - **Break while a program runs:** subscribe to `BreakPressed` to stop long work. The event comes from the keyboard
   thread, so just set a flag in the handler.
-- **Several threads:** `Write`, `WriteLine`, `Clear` and `SetCursor` are safe from any thread. Only one thread should
+- **Several threads:** `Write`, `WriteLine`, `Clear`, `SetCursor`, `Foreground` and `Background` are safe from any thread. Only one thread should
   call `ReadLine` or `ReadKey` at a time. `CancelRead()` is the one input method meant to be called from another
   thread, and it only affects `ReadLine`, not `ReadKey`.
 - **Memory:** the text grid and the font use only a few KB. A `PicoCalcCanvas` used in graphics mode adds its own
   `width × height × 2` bytes.
-- **Font:** characters from U+0020 to U+00FF are drawn (accents included). Other characters are not available.
+- **Font:** characters from U+0020 to U+00FF are drawn (accents included). Other characters are not available. The
+  codes U+007F to U+009F are blank until you define them with `PicoCalcSymbols`, see the
+  [display doc](display.md#user-defined-symbols).
 - **One owner per pin:** the console and a separate `PicoCalcDisplay` or `PicoCalcKeyboard` cannot live together in
   one program, see the note at the top. The same goes for two consoles.
 - **Screen between runs:** the panel keeps its content while powered; `Start()` clears it.
