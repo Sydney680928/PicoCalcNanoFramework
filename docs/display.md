@@ -270,24 +270,25 @@ sprites. Colors are stored with 5/6/5 bits.
 
 Two things cost time: the **number of SPI calls** (each `SpiDevice.Write` has a fixed overhead of about 1.5 to 2 ms, a window needs several of them) and the **managed code** that prepares the pixels (an `Array.Copy` costs about 0.09 ms on the interpreter). The bytes themselves are almost free: the bus carries several MB/s.
 
-Measured on an RP2040 (Pico W), hardware SPI at 62.5 MHz, 16-bit mode, debugger attached. The first column is version 0.2 (chip select toggled, window always sent), the second is 0.3 (defaults: `HoldChipSelect` and `WindowCache` on):
+Measured on two boards, hardware SPI at 62.5 MHz, 16-bit mode, debugger attached. RP2040 is a Pico W, RP2350 a Pico 2 W. Version 0.2 chip select toggled and window always sent; version 0.3 has `HoldChipSelect` and `WindowCache` on (the defaults) and a faster `DrawGlyphs`. Times in milliseconds:
 
-| Operation | 0.2 | 0.3 |
-|---|---|---|
-| One 8 × 16 character, drawn alone | 12.5 ms | 6.0 ms |
-| Strip 8 × 320 pixels (`WriteRaw`) | 11.7 ms | 5.4 ms |
-| `FillRect` 8 × 16 | 13.4 ms | 6.9 ms |
-| 10 characters together (`DrawGlyphs`) | 25.5 ms | 16.6 ms |
-| A line of 39 characters of text (`DrawGlyphs`) | 64 ms | 37 ms |
-| Full-screen clear (`FillScreen`) | about 0.15 s | about 0.15 s |
-| Redraw of a whole text screen (780 cells, every cell changed) | 1.38 s | 1.24 s |
-| Scrolling | instantaneous (hardware), then the new line is drawn | |
+| Operation | RP2040, 0.2 | RP2040, 0.3 | RP2350, 0.3 |
+|---|---|---|---|
+| One 8 × 16 character, drawn alone | 12.5 | 6.0 | 3.6 |
+| Strip 8 × 320 pixels (`WriteRaw`) | 11.7 | 5.4 | 3.3 |
+| `FillRect` 8 × 16 | 13.4 | 6.9 | 3.9 |
+| 10 characters together (`DrawGlyphs`) | 25.5 | 16.6 | 10.8 |
+| 39 characters together, digits (`DrawGlyphs`) | 64 | 44 | 31 |
+| A line of 39 characters of ordinary text (letters and spaces) | | 37 | 25 |
+| Redraw of a whole text screen (780 cells, every cell changed) | 1380 | 1240 | 610 |
+| Full-screen clear (`FillScreen`) | about 150 | about 150 | not measured |
+| Scrolling | instantaneous (hardware), then the new line is drawn | | |
 
 What to remember:
 
 - A character drawn **alone** costs the same as a strip of 40 pixels: group things (`DrawGlyphs` for text, a canvas for shapes).
-- A run of characters costs about 1.5 ms per character, mostly the managed code that builds the pixel block, not the transfer. In a text line, spaces and the empty rows of the glyphs are skipped.
-- An ordinary console line is drawn in less than 45 ms; the whole text screen is only redrawn when leaving graphics mode (`EndGraphics()`), in about 1.2 s.
+- A run of characters costs about 1.5 ms per character on an RP2040 (about 0.8 ms on an RP2350), mostly the managed code that builds the pixel block, not the transfer. In a text line, spaces and the empty rows of the glyphs are skipped.
+- An ordinary console line is drawn in less than 40 ms on an RP2040 and 25 ms on an RP2350; the whole text screen is only redrawn when leaving graphics mode (`EndGraphics()`), in about 1.2 s on an RP2040 and 0.6 s on an RP2350.
 
 ## Pitfalls found on the way
 

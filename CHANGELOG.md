@@ -38,8 +38,8 @@ independently; the repository tag is the highest package version, and the entrie
 ### Changed
 
 - `PicoCalcNano.Display`: faster drawing. `HoldChipSelect` and `WindowCache` are now **on by default**; a character
-  drawn alone goes from 12.5 to 6.0 ms, a strip of pixels from 11.7 to 5.4 ms. Set them to `false` to get the 0.2
-  behavior.
+  drawn alone goes from 12.5 to 6.0 ms on an RP2040 (3.6 ms on an RP2350), a strip of pixels from 11.7 to 5.4 ms.
+  Set them to `false` to get the 0.2 behavior.
 - `PicoCalcNano.Display`: `DrawGlyphs` paints the run with the background color and then copies only the glyph rows
   that have pixels (spaces and empty rows are skipped): a line of 39 characters goes from 64 to about 37 ms.
 - **Breaking change** (`PicoCalcNano.Console`, `PicoCalcNano.Display`): `PicoCalcConsole.ForegroundColor` and
