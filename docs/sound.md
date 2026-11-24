@@ -4,7 +4,7 @@ Beeps, notes, small melodies and sound effects (lasers, explosions, sirens...) o
 wave produced by `PwmChannel`.
 
 - Source file: `PicoCalcSound.cs`
-- NuGet package: `nanoFramework.System.Device.Pwm`
+- NuGet packages: `nanoFramework.System.Device.Pwm`, `nanoFramework.System.Diagnostics.Stopwatch` (the effects measure their duration with a `Stopwatch`)
 - Independent of the other drivers
 - Firmware: needs CLR **1.18.0.96 or later** (see [Firmware](#firmware))
 

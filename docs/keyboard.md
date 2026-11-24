@@ -19,6 +19,7 @@ code, the character, and the modifier state.
 | Protocol | write register `0x09`, read 2 bytes `[state, code]` |
 | `[0, 0]` | FIFO empty |
 | `state` | `1` = pressed (repeated while the key is held: auto-repeat), `2` = hold (modifier keys), `3` = released |
+| Battery | write register `0x0B`, read 2 bytes: the **second** one holds the level (bits 0-6, percent) and the charging flag (bit 7), see [Battery](#battery) |
 
 The STM32 already applies **Shift** and **Caps Lock** to printable keys (`a` becomes `A`, `1` becomes `!`). It does
 **not** handle **Ctrl**: the driver does it (see below). The layout is US QWERTY; the codes were captured on a real
@@ -71,6 +72,10 @@ Thread.Sleep(Timeout.Infinite);
 | `event KeyDown` | Raised when a key is pressed, and again on every auto-repeat |
 | `event KeyUp` | Raised when a key is released |
 | `ShiftPressed`, `CtrlPressed`, `AltPressed` | Current state of the modifier keys |
+| `ReadBattery(out int percent, out bool charging)` | Battery level (0 to 100) and charging state. Returns `false` (and `percent` = -1) if the value is not available |
+| `BatteryPercent` | Battery level, 0 to 100, or -1 if it is not available |
+| `IsCharging` | `true` while the battery is being charged |
+| `ReadBatteryRaw()` | The raw register value (0 to 255; 0 = not available), or -1 on an I2C error |
 | `Start()` | Starts the polling thread (every 10 ms, up to 16 events drained per cycle) |
 | `Stop()` | Stops the thread |
 | `Dispose()` | Stops and releases the I2C device |
@@ -113,6 +118,40 @@ This is how `PicoCalcConsole` detects Ctrl+C.
 
 Several keys of a normal keyboard are reached with a modifier on this one: Break is **Shift + Esc**, Home is
 **Shift + Tab**, End is **Shift + Del**, Insert is **Alt + I**.
+
+## Battery
+
+The keyboard MCU also measures the battery. The level and the charging state are in its register `0x0B`: bits 0-6 are
+the percentage (0 to 100) and bit 7 is set while the battery is being charged.
+
+```csharp
+var keyboard = new PicoCalcKeyboard();
+keyboard.Start();                        // optional: the battery can be read with or without the polling thread
+
+int percent;
+bool charging;
+if (keyboard.ReadBattery(out percent, out charging))
+{
+    Debug.WriteLine("Battery " + percent + " %" + (charging ? " (charging)" : ""));
+}
+else
+{
+    Debug.WriteLine("Battery level not available");
+}
+```
+
+- `ReadBattery`, `BatteryPercent`, `IsCharging` and `ReadBatteryRaw` can be called from any thread, also while the
+  keyboard is started: the polling thread and these calls take turns on the I2C bus.
+- Each call reads the MCU. The MCU refreshes its value **about every 20 seconds**, so reading more often shows nothing
+  new.
+- The value is not available (`false`, -1) when there is no battery, when the MCU has not measured it yet (a few seconds
+  after power-on), when the keyboard firmware is older than **1.2** (the battery register was added in that version), or
+  on an I2C error.
+- For a correct level, power the PicoCalc on with the battery inserted, then connect the USB cable.
+- `Alt + B` on the keyboard makes the top-left LED blink to show the level (3 blinks: full or above 80 %, 2: about
+  50 %, 1: low): handy to compare with what the driver reads.
+- `PicoCalcConsole` owns its keyboard and does not expose the battery: read it with a `PicoCalcKeyboard` of your own
+  in a program that does not use the console.
 
 ## Example: reading keys with a queue
 

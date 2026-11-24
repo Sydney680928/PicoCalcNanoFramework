@@ -66,7 +66,7 @@ display.DrawText(10, 60, "Hello", PicoCalcColors.White, PicoCalcColors.Black, 2)
 
 ### Drawing
 
-All drawing is clipped to the screen. Each call costs a few milliseconds (see Performance): draw groups of things
+All drawing is clipped to the screen. Each call costs several milliseconds (see Performance): draw groups of things
 in a canvas rather than many small things directly.
 
 | Member | Description |
@@ -80,9 +80,9 @@ in a canvas rather than many small things directly.
 | `DrawText(x, y, text, fg, bg, scale)` | Text with a background color, `scale` = 1, 2, 3... (each font pixel becomes scale × scale pixels). A character that does not fit entirely on the screen is skipped |
 | `MeasureText(text, scale)` | Width in pixels of a text (static) |
 | `DrawGlyph(x, y, font, offset, fg, bg)` | One 8 × 16 glyph from a font table |
-| `DrawGlyphs(x, y, chars, start, count, fg, bg)` | A run of characters in **one** transfer (about three times faster than one by one) |
+| `DrawGlyphs(x, y, chars, start, count, fg, bg)` | A run of characters in **one** transfer (several times faster than one by one) |
 | `WriteRaw(x, y, w, h, data)` | Sends raw pixel bytes into a window, in the current pixel format |
-| `SetWindow(x0, y0, x1, y1)` | Sets the drawing window (low level) |
+| `SetWindow(x0, y0, x1, y1)` | Sets the drawing window (low level). With `WindowCache`, a column or row range that did not change is not sent again |
 
 ### Hardware scrolling
 
@@ -100,7 +100,8 @@ The controller has **480 lines of memory** while the panel shows 320. The scroll
 | Member | Description |
 |---|---|
 | `SetPixelFormat(byte colmod)` | `0x55` = 16 bits, `0x66` = 18 bits. `0x61` (3 bits) does **not** work on this panel |
-| `HoldChipSelect` | Keeps CS low permanently instead of toggling it around each transfer. Gains about 2 ms per character (9 ms instead of 11 ms); off by default. Only safe when nothing else shares this bus, which is true on the PicoCalc |
+| `HoldChipSelect` | Keeps CS low permanently instead of toggling it around each transfer (two slow GPIO writes saved per transfer, about 10 %). **On by default** since 0.3. Only safe when nothing else shares this bus, which is true on the PicoCalc; set it to `false` to toggle CS around every transfer as in 0.2 |
+| `WindowCache` | Does not send again the column range or the row range of the window when it has not changed since the previous drawing call (two SPI transfers saved per range). **On by default** since 0.3. Set it to `false` only if something else changes the controller's window behind the driver's back |
 
 ## `PicoCalcTextScreen`: a 40 × 20 text layer
 
@@ -267,18 +268,26 @@ sprites. Colors are stored with 5/6/5 bits.
 
 ## Performance
 
-The cost is the **number of SPI calls**, not the amount of data: each `SpiDevice.Write` has a fixed overhead of about
-1.5 ms, while a 39 KB block goes out in 11 ms (about 3.5 MB/s). Measured on an RP2040, hardware SPI, 16-bit mode:
+Two things cost time: the **number of SPI calls** (each `SpiDevice.Write` has a fixed overhead of about 1.5 to 2 ms, a window needs several of them) and the **managed code** that prepares the pixels (an `Array.Copy` costs about 0.09 ms on the interpreter). The bytes themselves are almost free: the bus carries several MB/s.
 
-| Operation | Time |
-|---|---|
-| Full-screen clear | about 0.15 s |
-| One 8 × 16 character, drawn alone | about 9 ms (6 SPI calls) |
-| 40 characters of a line, drawn together (`DrawGlyphs`) | about 125 ms (364 ms one by one) |
-| 14 direct shape or text calls | about 400 ms (25 ms per call) |
-| Draw into a 140 × 140 canvas (lines, circles, text...) | about 133 ms |
-| Send that canvas (39 KB) to the screen | about 11 ms |
-| Scrolling | instantaneous (hardware), then new lines are drawn |
+Measured on an RP2040 (Pico W), hardware SPI at 62.5 MHz, 16-bit mode, debugger attached. The first column is version 0.2 (chip select toggled, window always sent), the second is 0.3 (defaults: `HoldChipSelect` and `WindowCache` on):
+
+| Operation | 0.2 | 0.3 |
+|---|---|---|
+| One 8 × 16 character, drawn alone | 12.5 ms | 6.0 ms |
+| Strip 8 × 320 pixels (`WriteRaw`) | 11.7 ms | 5.4 ms |
+| `FillRect` 8 × 16 | 13.4 ms | 6.9 ms |
+| 10 characters together (`DrawGlyphs`) | 25.5 ms | 16.6 ms |
+| A line of 39 characters of text (`DrawGlyphs`) | 64 ms | 37 ms |
+| Full-screen clear (`FillScreen`) | about 0.15 s | about 0.15 s |
+| Redraw of a whole text screen (780 cells, every cell changed) | 1.38 s | 1.24 s |
+| Scrolling | instantaneous (hardware), then the new line is drawn | |
+
+What to remember:
+
+- A character drawn **alone** costs the same as a strip of 40 pixels: group things (`DrawGlyphs` for text, a canvas for shapes).
+- A run of characters costs about 1.5 ms per character, mostly the managed code that builds the pixel block, not the transfer. In a text line, spaces and the empty rows of the glyphs are skipped.
+- An ordinary console line is drawn in less than 45 ms; the whole text screen is only redrawn when leaving graphics mode (`EndGraphics()`), in about 1.2 s.
 
 ## Pitfalls found on the way
 

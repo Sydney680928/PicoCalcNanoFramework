@@ -9,6 +9,9 @@ independently; the repository tag is the highest package version, and the entrie
 
 ### Added
 
+- `PicoCalcNano.Keyboard`: battery level and charging state. `ReadBattery(out percent, out charging)`, `BatteryPercent`,
+  `IsCharging` and `ReadBatteryRaw()` read the battery register of the keyboard MCU (level 0 to 100, charging flag).
+  They can be called from any thread while the keyboard is started. Needs keyboard firmware 1.2 or later.
 - `PicoCalcNano.Display`: user-defined symbols. `PicoCalcSymbols.Define()` gives a shape to the codes U+007F and
   U+0080 to U+009F (33 codes, blank in the font): hearts, gauges, sprites, box-drawing characters. The text screen
   redraws the cells that show a symbol when it is redefined.
@@ -20,9 +23,25 @@ independently; the repository tag is the highest package version, and the entrie
 - `PicoCalcNano.Console`: `Foreground` and `Background` can be changed at any time (the text already displayed keeps
   its colors), and `GetPaletteColor()`, `SetPaletteColor()`, `NearestColorIndex()` and `PaletteSize`. `Clear()` erases
   with the current background color. `PicoCalcNano.Console` therefore needs `PicoCalcNano.Display` 0.3 or later.
+- `PicoCalcNano.Display`: `WindowCache` property. A column range or a row range of the drawing window that has not changed
+  since the previous call is not sent to the controller again (two SPI transfers saved each time). `SetWindow()` also
+  no longer allocates arrays.
+
+### Fixed
+
+- `PicoCalcNano.Keyboard`: the accents of the copyright header of `PicoCalcKeyboard.cs` were corrupted.
+- `PicoCalcNano.Sound`: the effects (`Sweep`, `Noise`, `S:` / `SF:` / `N:` / `NF:` in a melody) measured their duration with
+  `DateTime.UtcNow`, which does not advance on a firmware whose clock was never set (for instance right after flashing
+  the CLR): the effect then never ended. They now use a `Stopwatch`, so `PicoCalcNano.Sound` depends on the
+  `nanoFramework.System.Diagnostics.Stopwatch` package.
 
 ### Changed
 
+- `PicoCalcNano.Display`: faster drawing. `HoldChipSelect` and `WindowCache` are now **on by default**; a character
+  drawn alone goes from 12.5 to 6.0 ms, a strip of pixels from 11.7 to 5.4 ms. Set them to `false` to get the 0.2
+  behavior.
+- `PicoCalcNano.Display`: `DrawGlyphs` paints the run with the background color and then copies only the glyph rows
+  that have pixels (spaces and empty rows are skipped): a line of 39 characters goes from 64 to about 37 ms.
 - **Breaking change** (`PicoCalcNano.Console`, `PicoCalcNano.Display`): `PicoCalcConsole.ForegroundColor` and
   `BackgroundColor` (`0xRRGGBB` fields, to set before `Start()`) are replaced by `Foreground` and `Background`, which
   are palette indexes (0 to 15, use `PicoCalcPalette`). Replace `console.ForegroundColor = PicoCalcColors.Red` by

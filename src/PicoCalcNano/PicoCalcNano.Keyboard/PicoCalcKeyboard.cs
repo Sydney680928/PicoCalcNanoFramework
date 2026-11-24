@@ -32,6 +32,9 @@
 // tries both and keeps the one where the keyboard answers (see BusId). To force a bus, use
 // new PicoCalcKeyboard(busId, 0x1F).
 //
+// Battery: register 0x0B of the keyboard MCU holds the battery level (bits 0-6, percent) and a "charging" flag (bit 7).
+// It needs keyboard firmware 1.2 or later; the MCU refreshes the value about every 20 seconds. See ReadBattery().
+//
 // NuGet packages needed: nanoFramework.System.Device.I2c
 //
 // Usage:
@@ -80,7 +83,7 @@ namespace PicoCalcNano
         public const byte F4 = 0x84;
         public const byte F5 = 0x85;
         public const byte F6 = 0x86;
-        public const byte F7 = 0x87;
+        public const byte F7 = 0x87; 
         public const byte F8 = 0x88;
         public const byte F9 = 0x89;
         public const byte F10 = 0x90;
@@ -126,6 +129,7 @@ namespace PicoCalcNano
     public class PicoCalcKeyboard : IDisposable
     {
         private const byte RegFifo = 0x09;
+        private const byte RegBattery = 0x0B;
         private const byte StatePressed = 1;
         private const byte StateHold = 2;
         private const byte StateReleased = 3;
@@ -134,6 +138,7 @@ namespace PicoCalcNano
         public const int AutoDetect = -1;
 
         private readonly I2cDevice _i2c;
+        private readonly object _i2cLock = new object();   // the polling thread and ReadBattery share the bus
         private readonly int _busId;
         private readonly bool[] _isDown = new bool[256];
 
@@ -172,6 +177,85 @@ namespace PicoCalcNano
 
         /// <summary>I2C bus id actually used (useful when detection is on).</summary>
         public int BusId { get { return _busId; } }
+
+        /// <summary>
+        /// Reads the battery level and the charging state from the keyboard MCU. Can be called from any thread, also
+        /// while the keyboard is started. Returns false if the value is not available: no battery, no value measured yet
+        /// (the MCU needs a few seconds after power-on), keyboard firmware older than 1.2, or an I2C error;
+        /// <paramref name="percent"/> is then -1 and <paramref name="charging"/> false.
+        /// The MCU refreshes the value about every 20 seconds, so reading more often shows nothing new.
+        /// </summary>
+        /// <param name="percent">Battery level, 0 to 100.</param>
+        /// <param name="charging">True while the battery is being charged (USB power connected).</param>
+        public bool ReadBattery(out int percent, out bool charging)
+        {
+            percent = -1;
+            charging = false;
+
+            int value = ReadBatteryRaw();
+            int level = value & 0x7F;
+
+            if (value <= 0 || level > 100)
+            {
+                return false;
+            }
+
+            percent = level;
+            charging = (value & 0x80) != 0;
+            return true;
+        }
+
+        /// <summary>
+        /// The raw value of the battery register (bits 0-6: percent, bit 7: charging), 0 to 255, or -1 on an I2C error.
+        /// 0 means that no value is available. Useful to see what the MCU really returns; ReadBattery() decodes it.
+        /// </summary>
+        public int ReadBatteryRaw()
+        {
+            // Same access as the FIFO: write the register number, then read 2 bytes; the value is the second byte.
+            byte[] reg = new byte[] { RegBattery };
+            byte[] buf = new byte[2];
+
+            try
+            {
+                lock (_i2cLock)
+                {
+                    _i2c.WriteRead(reg, buf);
+                }
+            }
+            catch
+            {
+                return -1;
+            }
+
+            return buf[1];
+        }
+
+        /// <summary>
+        /// Battery level, 0 to 100, or -1 if it is not available (see ReadBattery). Reads the keyboard MCU each time
+        /// it is called.
+        /// </summary>
+        public int BatteryPercent
+        {
+            get
+            {
+                int percent;
+                bool charging;
+                ReadBattery(out percent, out charging);
+                return percent;
+            }
+        }
+
+        /// <summary>True while the battery is being charged (false if it is not charging or if the value is not available).</summary>
+        public bool IsCharging
+        {
+            get
+            {
+                int percent;
+                bool charging;
+                ReadBattery(out percent, out charging);
+                return charging;
+            }
+        }
 
         public bool ShiftPressed { get { return _shift; } }
         public bool CtrlPressed { get { return _ctrl; } }
@@ -268,7 +352,10 @@ namespace PicoCalcNano
 
                     try
                     {
-                        _i2c.WriteRead(reg, buf);
+                        lock (_i2cLock)
+                        {
+                            _i2c.WriteRead(reg, buf);
+                        }
                     }
                     catch
                     {

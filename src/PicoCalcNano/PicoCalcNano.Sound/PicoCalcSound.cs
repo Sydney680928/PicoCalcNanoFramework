@@ -39,10 +39,11 @@
 //     "N:100-3000:400"    noise: random frequencies between 100 and 3000 Hz for 400 ms ("NF:" = fading out)
 // Example: "G4:120 C5:120 E5:120 S:600>2400:250 R:100 NF:100-3000:500".
 //
-// NuGet package: nanoFramework.System.Device.Pwm
+// NuGet packages: nanoFramework.System.Device.Pwm, nanoFramework.System.Diagnostics.Stopwatch
 
 using System;
 using System.Device.Pwm;
+using System.Diagnostics;
 using System.Threading;
 
 namespace PicoCalcNano
@@ -209,19 +210,20 @@ namespace PicoCalcNano
         private void RunSteps(int milliseconds, bool fadeOut, FrequencyAt frequencyAt)
         {
             int stepMs = StepMs < 2 ? 2 : StepMs;
-            long total = (long)milliseconds * TimeSpan.TicksPerMillisecond;
-            long start = DateTime.UtcNow.Ticks;
+            // A Stopwatch, not DateTime.UtcNow: the system clock does not advance on a firmware whose time was never set
+            long total = (long)milliseconds * Stopwatch.Frequency / 1000;
+            Stopwatch watch = Stopwatch.StartNew();
             double volume = Volume;
 
             while (!_stopRequested)
             {
-                long elapsed = DateTime.UtcNow.Ticks - start;
+                long elapsed = watch.ElapsedTicks;
                 if (elapsed >= total)
                 {
                     break;
                 }
 
-                int remaining = (int)((total - elapsed) / TimeSpan.TicksPerMillisecond);
+                int remaining = (int)((total - elapsed) * 1000 / Stopwatch.Frequency);
                 if (remaining < 1)
                 {
                     break;
