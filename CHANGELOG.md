@@ -9,6 +9,14 @@ independently; the repository tag is the highest package version, and the entrie
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.3.0] - 2026-11-25
+
+### Added
+
 - `PicoCalcNano.Keyboard`: battery level and charging state. `ReadBattery(out percent, out charging)`, `BatteryPercent`,
   `IsCharging` and `ReadBatteryRaw()` read the battery register of the keyboard MCU (level 0 to 100, charging flag).
   They can be called from any thread while the keyboard is started. Needs keyboard firmware 1.2 or later.
@@ -105,6 +113,7 @@ First release. The five packages are published together on nuget.org in version 
 - Console: `PicoCalcConsole` creates and owns its own display and keyboard. Do not create a `PicoCalcDisplay` or a
   `PicoCalcKeyboard` in the same program (the pins are already open); use `console.Display` instead.
 
-[Unreleased]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sydney680928/PicoCalcNanoFramework/releases/tag/v0.1.0
