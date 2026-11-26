@@ -9,14 +9,18 @@ independently; the repository tag is the highest package version, and the entrie
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.3.1] - 2026-11-26
+
+### Added
+
 - `PicoCalcNano.Console`: `Keyboard` property, the keyboard owned by the console (like `Display`). It gives access to the
   features that do not go through the console, for instance the battery: `console.Keyboard.ReadBattery(out percent,
   out charging)`. Do not call `Start()`, `Stop()` or `Dispose()` on it and do not subscribe to its `KeyDown` event, the
   console relies on them.
-
-### Fixed
-
-### Changed
 
 ## [0.3.0] - 2026-11-25
 
@@ -118,7 +122,8 @@ First release. The five packages are published together on nuget.org in version 
 - Console: `PicoCalcConsole` creates and owns its own display and keyboard. Do not create a `PicoCalcDisplay` or a
   `PicoCalcKeyboard` in the same program (the pins are already open); use `console.Display` instead.
 
-[Unreleased]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sydney680928/PicoCalcNanoFramework/releases/tag/v0.1.0
