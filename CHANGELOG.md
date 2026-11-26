@@ -9,6 +9,11 @@ independently; the repository tag is the highest package version, and the entrie
 
 ### Added
 
+- `PicoCalcNano.Console`: `Keyboard` property, the keyboard owned by the console (like `Display`). It gives access to the
+  features that do not go through the console, for instance the battery: `console.Keyboard.ReadBattery(out percent,
+  out charging)`. Do not call `Start()`, `Stop()` or `Dispose()` on it and do not subscribe to its `KeyDown` event, the
+  console relies on them.
+
 ### Fixed
 
 ### Changed

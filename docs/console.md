@@ -13,7 +13,7 @@ separate piece so that other projects can use it as well.
 > **The console owns the display and the keyboard.** `PicoCalcConsole` creates its own `PicoCalcDisplay` and
 > `PicoCalcKeyboard`. Do **not** create either of them in the same program: the pins are already open and the console
 > constructor throws an `InvalidOperationException` (`GpioController.InternalOpenPin`). To draw, use the console's
-> `Display` property. If you need a display or a keyboard on its own, `Dispose()` it before creating the console (and
+> `Display` property, and the `Keyboard` property for the battery. If you need a display or a keyboard on its own, `Dispose()` it before creating the console (and
 > create a new one after `console.Dispose()`).
 
 The screen is refreshed by an internal thread (every 20 ms; the cursor blinks every 500 ms): you do **not** call
@@ -166,6 +166,7 @@ The console can hand the screen to your own drawing code and give it back:
 | Member | Description |
 |---|---|
 | `Display` | The `PicoCalcDisplay`, for direct drawing |
+| `Keyboard` | The `PicoCalcKeyboard` owned by the console, for the features that do not go through the console (battery, see below) |
 | `BeginGraphics()` | Pauses the text refresh and puts the scroll start back to 0: screen coordinates 0..319 match the display |
 | `EndGraphics()` | Wipes the panel and redraws the text screen exactly as it was (prompt included) |
 
@@ -215,6 +216,9 @@ shown until a key is pressed).
 - **Font:** characters from U+0020 to U+00FF are drawn (accents included). Other characters are not available. The
   codes U+007F to U+009F are blank until you define them with `PicoCalcSymbols`, see the
   [display doc](display.md#user-defined-symbols).
+- **Battery:** `console.Keyboard.ReadBattery(out percent, out charging)` (see the [keyboard doc](keyboard.md#battery)).
+  Only use the reading members (`ReadBattery`, `BatteryPercent`, `IsCharging`, `ReadBatteryRaw`): do not call `Start()`,
+  `Stop()` or `Dispose()` on this keyboard and do not subscribe to its `KeyDown` event, the console relies on them.
 - **One owner per pin:** the console and a separate `PicoCalcDisplay` or `PicoCalcKeyboard` cannot live together in
   one program, see the note at the top. The same goes for two consoles.
 - **Screen between runs:** the panel keeps its content while powered; `Start()` clears it.

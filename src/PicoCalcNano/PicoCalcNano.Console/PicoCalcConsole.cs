@@ -192,6 +192,11 @@ namespace PicoCalcNano
         /// <summary>The display, for direct drawing between BeginGraphics() and EndGraphics().</summary>
         public PicoCalcDisplay Display { get { return _display; } }
 
+        /// <summary>The keyboard owned by the console, for the features that do not go through the console
+        /// (for instance ReadBattery()). Do not call Start(), Stop() or Dispose() on it, and do not subscribe to
+        /// KeyDown: the console depends on its own use of the keyboard.</summary>
+        public PicoCalcKeyboard Keyboard { get { return _keyboard; } }
+
         public int Columns { get { return PicoCalcTextScreen.Columns; } }
         public int Rows { get { return PicoCalcTextScreen.Rows; } }
 
