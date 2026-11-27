@@ -253,10 +253,15 @@ canvas.DrawTo(display, 90, 170);                            // one transfer to t
 | `PicoCalcCanvas(width, height)` | Allocates the buffer |
 | `Width`, `Height` | Size |
 | `Clear(rgb)` | Fills the canvas |
-| `SetPixel`, `GetPixel` | One pixel |
-| `HLine`, `VLine`, `DrawLine`, `DrawRect`, `FillRect` | Lines and rectangles |
-| `DrawCircle`, `FillCircle` | Circles |
-| `DrawTriangle`, `FillTriangle` | Triangles |
+| `SetPixel(x, y, rgb)`, `GetPixel(x, y)` | One pixel |
+| `HLine(x, y, length, rgb)`, `VLine(x, y, length, rgb)` | Horizontal and vertical lines |
+| `DrawLine(x0, y0, x1, y1, rgb)` | Line between two points |
+| `DrawRect(x, y, w, h, rgb)` | Rectangle outline |
+| `FillRect(x, y, w, h, rgb)` | Filled rectangle |
+| `DrawCircle(cx, cy, r, rgb)` | Circle outline |
+| `FillCircle(cx, cy, r, rgb)` | Filled circle |
+| `DrawTriangle(x0, y0, x1, y1, x2, y2, rgb)` | Triangle outline |
+| `FillTriangle(x0, y0, x1, y1, x2, y2, rgb)` | Filled triangle |
 | `DrawText(x, y, text, rgb, scale)` | Text with a transparent background |
 | `DrawText(x, y, text, rgb, bgRgb, scale)` | Text with a background color |
 | `DrawCanvas(source, x, y)` | Copies another canvas (opaque) |
