@@ -11,6 +11,9 @@ independently; the repository tag is the highest package version, and the entrie
 
 ### Fixed
 
+- `PicoCalcNano.Console`: `CursorVisible = false` had no effect, because the cursor blink overwrote it every 500 ms.
+  The setting is now kept separately and the cursor stays hidden. `CursorVisible` can also be set before `Start()`.
+
 ### Changed
 
 ## [0.3.1] - 2026-11-26

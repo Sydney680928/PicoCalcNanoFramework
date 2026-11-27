@@ -66,6 +66,7 @@ namespace PicoCalcNano
         private bool _blinkReset;
         private bool _graphics;   // true while the program draws directly on the display
         private bool _busy;       // true while the cursor is the hourglass
+        private bool _cursorEnabled = true;   // CursorVisible: false hides the cursor, which then does not blink
 
         // Hourglass cursor, 8x16 (a few blank rows at the top and the bottom)
         private static readonly byte[] HourglassGlyph = new byte[]
@@ -231,6 +232,7 @@ namespace PicoCalcNano
             _screen = new PicoCalcTextScreen(_display);
             _screen.Foreground = _foreground;
             _screen.Background = _background;
+            _screen.CursorVisible = _cursorEnabled;
             if (_busy)
             {
                 _screen.CursorGlyph = HourglassGlyph;
@@ -296,15 +298,24 @@ namespace PicoCalcNano
             }
         }
 
+        /// <summary>
+        /// False hides the cursor (it does not blink any more); true (default) shows it, blinking. Can be set from
+        /// any thread, also before Start().
+        /// </summary>
         public bool CursorVisible
         {
-            get { return _screen.CursorVisible; }
+            get { return _cursorEnabled; }
             set
             {
                 lock (_lock)
                 {
-                    _screen.CursorVisible = value;
-                    _screen.Invalidate();
+                    _cursorEnabled = value;
+
+                    if (_screen != null)
+                    {
+                        _screen.CursorVisible = value;
+                        _screen.Invalidate();
+                    }
                 }
             }
         }
@@ -697,7 +708,7 @@ namespace PicoCalcNano
                         {
                             _blinkReset = false;
                             tick = 0;
-                            _screen.CursorVisible = true;
+                            _screen.CursorVisible = _cursorEnabled;
                             _screen.Invalidate();
                         }
 
@@ -705,7 +716,7 @@ namespace PicoCalcNano
                         if (tick >= 25)   // about every 500 ms
                         {
                             tick = 0;
-                            _screen.CursorVisible = !_screen.CursorVisible;
+                            _screen.CursorVisible = _cursorEnabled && !_screen.CursorVisible;
                             _screen.Invalidate();
                         }
 
