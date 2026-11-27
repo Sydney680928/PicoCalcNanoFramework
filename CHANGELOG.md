@@ -11,10 +11,14 @@ independently; the repository tag is the highest package version, and the entrie
 
 ### Fixed
 
+### Changed
+
+## [0.3.2] - 2026-11-28
+
+### Fixed
+
 - `PicoCalcNano.Console`: `CursorVisible = false` had no effect, because the cursor blink overwrote it every 500 ms.
   The setting is now kept separately and the cursor stays hidden. `CursorVisible` can also be set before `Start()`.
-
-### Changed
 
 ## [0.3.1] - 2026-11-26
 
@@ -125,7 +129,8 @@ First release. The five packages are published together on nuget.org in version 
 - Console: `PicoCalcConsole` creates and owns its own display and keyboard. Do not create a `PicoCalcDisplay` or a
   `PicoCalcKeyboard` in the same program (the pins are already open); use `console.Display` instead.
 
-[Unreleased]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/sydney680928/PicoCalcNanoFramework/compare/v0.1.0...v0.2.0
