@@ -29,10 +29,10 @@
       <HintPath>..\packages\nanoFramework.Runtime.Events.1.11.39\lib\nanoFramework.Runtime.Events.dll</HintPath>
     </Reference>
     <Reference Include="PicoCalcNano.Display">
-      <HintPath>..\packages\PicoCalcNano.Display.0.2.0\lib\PicoCalcNano.Display.dll</HintPath>
+      <HintPath>..\packages\PicoCalcNano.Display.0.3.0\lib\PicoCalcNano.Display.dll</HintPath>
     </Reference>
     <Reference Include="PicoCalcNano.Keyboard">
-      <HintPath>..\packages\PicoCalcNano.Keyboard.0.1.0\lib\PicoCalcNano.Keyboard.dll</HintPath>
+      <HintPath>..\packages\PicoCalcNano.Keyboard.0.2.0\lib\PicoCalcNano.Keyboard.dll</HintPath>
     </Reference>
     <Reference Include="System.Device.Gpio">
       <HintPath>..\packages\nanoFramework.System.Device.Gpio.1.1.64\lib\System.Device.Gpio.dll</HintPath>
